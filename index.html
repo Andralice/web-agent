@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页助手</title>
+    <link rel="stylesheet" href="./node_modules/element-plus/dist/index.css" />
+</head>
+<body>
+    <div id="app"></div>
+
+    <script src="./node_modules/vue/dist/vue.global.prod.js"></script>
+    <script src="./node_modules/element-plus/dist/index.full.min.js"></script>
+    <script src="./node_modules/axios/dist/axios.min.js"></script>
+    <script>
+        const { createApp, ref, reactive, computed, onMounted, onBeforeUnmount } = Vue;
+
+        const App = {
+            template: `
+                <div class="app-shell">
+                    <header class="titlebar">
+                        <div class="titlebar-left">
+                            <div class="app-mark">W</div>
+                            <div class="titlebar-text">
+                                <div class="app-name">网页助手</div>
+                                <div class="app-subtitle">小说创作与管理工作台</div>
+                            </div>
+                        </div>
+                        <div class="titlebar-center">
+                            <span class="chip">作品 {{ novels.length }}</span>
+                            <span class="chip chip-muted" v-if="currentNovel">当前：{{ currentNovel.title }}</span>
+                            <span class="chip chip-muted" v-else>未选择作品</span>
+                            <el-button-group class="service-switch">
+                                <el-button size="small" :type="!isCloudServer ? 'primary' : ''" :disabled="!isCloudServer" @click="switchToLocal">本地服务</el-button>
+                                <el-button size="small" :type="isCloudServer ? 'primary' : ''" :disabled="isCloudServer" @click="switchToCloud">云端服务</el-button>
+                            </el-button-group>
+                            <el-tag size="small" :type="connectionStatus.type">{{ connectionStatus.text }}</el-tag>
+                            <el-button size="small" type="primary" plain @click="testConnection" :loading="testing">测试连接</el-button>
+                        </div>
+                        <div class="titlebar-actions">
+                            <button class="window-btn" @click="minimizeWindow" title="最小化">—</button>
+                            <button class="window-btn" @click="maximizeWindow" title="最大化">□</button>
+                            <button class="window-btn close" @click="closeWindow" title="关闭">×</button>
+                        </div>
+                    </header>
+
+                    <div class="workspace">
+                        <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+                            <div class="sidebar-head" @click="toggleSidebar" title="点击收起/展开导航">
+                                <div class="sidebar-logo">{{ sidebarCollapsed ? 'W' : 'WP' }}</div>
+                                <div class="sidebar-title" v-show="!sidebarCollapsed">
+                                    <div class="sidebar-name">网页助手</div>
+                                    <div class="sidebar-desc">内容创作平台</div>
+                                </div>
+                            </div>
+                            <el-menu class="nav-menu" :default-active="activeView" @select="handleViewChange">
+                                <el-menu-item index="home">
+                                    <span class="nav-icon">创</span>
+                                    <span class="nav-text">创作中心</span>
+                                </el-menu-item>
+                                <el-menu-item index="log">
+                                    <span class="nav-icon">监</span>
+                                    <span class="nav-text">运行监控</span>
+                                </el-menu-item>
+                            </el-menu>
+                        </aside>
+
+                        <main class="content">
+                            <section v-show="activeView === 'home'" class="page">
+                                <div class="page-head">
+                                    <div class="page-titleline">
+                                        <span class="eyebrow">中文创作工作台</span>
+                                        <span class="titleline-divider"></span>
+                                        <h1>智能内容创作中枢</h1>
+                                        <p>统一管理作品、章节、阅读与导出流程，让创作更稳定、更高效。</p>
+                                    </div>
+                                    <div class="page-head-actions">
+                                        <div class="stat-card">
+                                            <div class="stat-value">{{ novels.length }}</div>
+                                            <div class="stat-label">作品数量</div>
+                                        </div>
+                                        <el-button type="primary" size="large" @click="openCreateDialog">+ 新建作品</el-button>
+                                    </div>
+                                </div>
+
+                                <div class="content-grid">
+                                    <el-card v-if="!currentNovel" shadow="hover" class="panel">
+                                        <template #header>
+                                            <div class="panel-header">
+                                                <span class="panel-title">作品库</span>
+                                                <el-badge :value="novels.length" type="primary" />
+                                            </div>
+                                        </template>
+                                        <div class="table-wrap">
+                                            <el-table
+                                                :data="novels"
+                                                @row-click="selectNovel"
+                                                highlight-current-row
+                                                v-loading="loading.novels"
+                                                empty-text="暂无作品，点击右上角新建"
+                                                :header-cell-style="{ textAlign: 'center' }"
+                                                :cell-style="{ textAlign: 'center' }"
+                                                stripe>
+                                                <el-table-column prop="id" label="ID" width="90" align="center" />
+                                                <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
+                                                <el-table-column label="全局设定" min-width="260" show-overflow-tooltip>
+                                                    <template #default="{ row }">
+                                                        <span class="setting-preview">{{ row.generationSetting || '未设置' }}</span>
+                                                    </template>
+                                                </el-table-column>
+                                                <el-table-column label="操作" width="100" align="center">
+                                                    <template #default="{ row }">
+                                                        <el-button link type="danger" size="small" @click.stop="handleDeleteNovel(row)">删除</el-button>
+                                                    </template>
+                                                </el-table-column>
+                                            </el-table>
+                                        </div>
+                                    </el-card>
+
+                                    <el-card v-else shadow="hover" class="panel panel-workbench">
+                                        <template #header>
+                                            <div class="panel-header panel-header-vertical">
+                                                <div>
+                                                    <div class="panel-title">{{ currentNovel.title }}</div>
+                                                    <div class="panel-subtitle">已生成 {{ chapters.length }} 个章节 · 支持续写、审阅与导出</div>
+                                                    <div class="novel-setting" v-if="currentNovel.generationSetting">
+                                                        <span>全局设定：</span>{{ currentNovel.generationSetting }}
+                                                    </div>
+                                                </div>
+                                                <div class="action-bar">
+                                                    <el-button @click="backToNovelList">← 返回作品库</el-button>
+                                                    <el-button size="small" @click="refreshGenerationState" :loading="loading.progress">刷新进度</el-button>
+                                                    <button type="button" :class="['stage-pill', workbenchMode === 'outline' ? 'active' : '', generationProgress.outlineReady ? 'done' : 'pending']" @click="setWorkbenchMode(workbenchMode === 'outline' ? 'chapters' : 'outline')">
+                                                        大纲 {{ generationProgress.outlineReady ? '已完成' : '生成中' }}
+                                                    </button>
+                                                    <button type="button" :class="['stage-pill', workbenchMode === 'characters' ? 'active' : '', generationProgress.charactersReady ? 'done' : 'pending']" @click="setWorkbenchMode(workbenchMode === 'characters' ? 'chapters' : 'characters')">
+                                                        角色 {{ generationProgress.charactersReady ? '已完成' : '生成中' }}
+                                                    </button>
+                                                    <span class="stage-pill done">章节 {{ generationProgress.chapterCount || chapters.length }} 章</span>
+                                                    <span v-if="generationProgress.failedCount" class="stage-pill danger">失败 {{ generationProgress.failedCount }}</span>
+                                                    <el-button type="success" @click="continueNovel" :loading="actions.continuing">续写章节</el-button>
+                                                    <el-button type="primary" plain @click="autoContinueNovel" :loading="actions.autoContinuing">自动续写</el-button>
+                                                    <el-button type="warning" @click="exportNovel" :disabled="chapters.length === 0" :loading="actions.exporting">导出 TXT</el-button>
+                                                    <el-button @click="refreshChapters" :loading="actions.refreshing">刷新</el-button>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <div v-if="workbenchMode === 'chapters'" class="workbench" :style="{ gridTemplateColumns: chapterListWidth + 'px 8px minmax(0, 1fr)' }">
+                                            <div class="chapter-list">
+                                                <el-menu @select="handleChapterSelect" v-loading="loading.chapters" :default-active="currentChapter ? currentChapter.id.toString() : ''">
+                                                    <el-empty v-if="chapters.length === 0 && !loading.chapters" description="暂无章节" :image-size="80" />
+                                                    <el-menu-item v-for="c in chapters" :index="c.id.toString()" :key="c.id">
+                                                        <div class="chapter-item">
+                                                            <span class="chapter-number">{{ c.chapterNumber }}</span>
+                                                            <span class="chapter-title">{{ c.title }}</span>
+                                                            <el-tag v-if="c.generationSetting" size="small" type="warning" effect="plain">设定</el-tag>
+                                                        </div>
+                                                    </el-menu-item>
+                                                </el-menu>
+                                            </div>
+
+                                            <div class="chapter-resizer" @mousedown="startResizeChapterList" title="拖拽调整章节栏宽度"></div>
+
+                                            <div class="reader">
+                                                <div v-if="currentChapter" class="chapter-content" ref="contentRef">
+                                                    <h3>{{ currentChapter.title }}</h3>
+                                                    <div class="chapter-setting" v-if="currentChapter.generationSetting">
+                                                        <strong>本章生成设定：</strong>
+                                                        <p>{{ currentChapter.generationSetting }}</p>
+                                                    </div>
+                                                    <p>{{ currentChapter.content }}</p>
+                                                </div>
+                                                <div v-else class="empty-panel">
+                                                    <el-empty description="选择左侧章节后即可进入审阅模式" :image-size="120">
+                                                        <template #image>
+                                                            <span class="empty-icon">📖</span>
+                                                        </template>
+                                                    </el-empty>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div v-else-if="workbenchMode === 'outline'" class="stage-detail stage-outline">
+                                            <div class="stage-detail-card">
+                                                <div class="stage-detail-head">
+                                                    <h3>大纲与全局设定</h3>
+                                                    <el-button size="small" @click="setWorkbenchMode('chapters')">返回章节</el-button>
+                                                </div>
+                                                <div v-if="outlineInfo.ready || outlineInfo.description || outlineInfo.generationSetting" class="stage-detail-content">
+                                                    <section v-if="outlineInfo.generationSetting">
+                                                        <h4>全局设定</h4>
+                                                        <p>{{ outlineInfo.generationSetting }}</p>
+                                                    </section>
+                                                    <section v-if="outlineInfo.description">
+                                                        <h4>小说大纲</h4>
+                                                        <p>{{ outlineInfo.description }}</p>
+                                                    </section>
+                                                </div>
+                                                <el-empty v-else description="大纲仍在生成中，请稍后刷新" :image-size="100" />
+                                            </div>
+                                        </div>
+
+                                        <div v-else-if="workbenchMode === 'characters'" class="stage-detail stage-characters">
+                                            <div class="stage-detail-card">
+                                                <div class="stage-detail-head">
+                                                    <h3>角色设定</h3>
+                                                    <el-button size="small" @click="setWorkbenchMode('chapters')">返回章节</el-button>
+                                                </div>
+                                                <div v-if="characters.length" class="character-grid">
+                                                    <div v-for="(character, index) in characters" :key="character.id || index" class="character-card">
+                                                        <h4>{{ character.name || character.characterName || '角色' + (index + 1) }}</h4>
+                                                        <p>{{ formatCharacter(character) }}</p>
+                                                    </div>
+                                                </div>
+                                                <el-empty v-else description="角色设定仍在生成中，请稍后刷新" :image-size="100" />
+                                            </div>
+                                        </div>
+                                    </el-card>
+                                </div>
+                            </section>
+
+                            <section v-show="activeView === 'log'" class="page">
+                                <div class="page-head page-head-tight">
+                                    <div class="page-titleline">
+                                        <span class="eyebrow">系统监控</span>
+                                        <span class="titleline-divider"></span>
+                                        <h1>运行日志</h1>
+                                        <p>查看接口请求、连接状态和任务执行记录。</p>
+                                    </div>
+                                    <el-button size="small" type="danger" plain @click="clearLogs">清空日志</el-button>
+                                </div>
+
+                                <div class="log-toolbar">
+                                    <el-button-group>
+                                        <el-button size="small" @click="filterLog('all')" :type="logFilter === 'all' ? 'primary' : ''">全部</el-button>
+                                        <el-button size="small" @click="filterLog('info')" :type="logFilter === 'info' ? 'primary' : ''">信息</el-button>
+                                        <el-button size="small" @click="filterLog('success')" :type="logFilter === 'success' ? 'primary' : ''">成功</el-button>
+                                        <el-button size="small" @click="filterLog('warning')" :type="logFilter === 'warning' ? 'primary' : ''">警告</el-button>
+                                        <el-button size="small" @click="filterLog('error')" :type="logFilter === 'error' ? 'primary' : ''">错误</el-button>
+                                    </el-button-group>
+                                </div>
+
+                                <div class="log-panel" ref="logContainerRef">
+                                    <div v-for="(log, index) in filteredLogs" :key="index" class="log-entry">
+                                        <span class="log-time">{{ log.time }}</span>
+                                        <span :class="['log-badge', 'log-' + log.type]">[{{ log.type.toUpperCase() }}]</span>
+                                        <span class="log-message">{{ log.message }}</span>
+                                    </div>
+                                    <div v-if="filteredLogs.length === 0" class="log-empty">暂无日志记录</div>
+                                </div>
+                            </section>
+                        </main>
+                    </div>
+
+                    <el-dialog v-model="dialogVisible" title="新建小说" width="560px" :close-on-click-modal="false">
+                        <el-form :model="form" @submit.prevent="submitCreate">
+                            <el-form-item label="小说题材" label-width="100px">
+                                <el-input
+                                    v-model="form.topic"
+                                    placeholder="例如：赛博朋克修仙、都市异能、玄幻大陆..."
+                                    maxlength="100"
+                                    show-word-limit
+                                    clearable
+                                    @keyup.enter="submitCreate">
+                                    <template #prefix>💡</template>
+                                </el-input>
+                            </el-form-item>
+                            <el-form-item label="全局设定" label-width="100px">
+                                <el-input
+                                    v-model="form.generationSetting"
+                                    type="textarea"
+                                    :rows="5"
+                                    maxlength="1000"
+                                    show-word-limit
+                                    placeholder="例如：主角是女高中生，世界观偏赛博朋克，主线是调查父亲失踪，文风压抑但爽点强。" />
+                            </el-form-item>
+                            <el-alert title="AI 将根据题材和全局设定自动生成小说大纲和前几章内容" type="info" :closable="false" show-icon />
+                        </el-form>
+                        <template #footer>
+                            <div class="dialog-footer">
+                                <el-button @click="dialogVisible = false">取消</el-button>
+                                <el-button type="primary" @click="submitCreate" :loading="actions.creating" :disabled="!form.topic.trim()">{{ actions.creating ? '创作中...' : '开始创作' }}</el-button>
+                            </div>
+                        </template>
+                    </el-dialog>
+
+                    <el-dialog v-model="continueDialogVisible" title="续写章节" width="560px" :close-on-click-modal="false">
+                        <el-form :model="continueForm" @submit.prevent="submitContinueNovel">
+                            <el-form-item label="续写设定" label-width="100px">
+                                <el-input
+                                    v-model="continueForm.generationSetting"
+                                    type="textarea"
+                                    :rows="6"
+                                    maxlength="1000"
+                                    show-word-limit
+                                    placeholder="例如：这一章重点写主角第一次失控，反派暂时占上风，结尾留下妹妹的线索。" />
+                            </el-form-item>
+                            <el-alert title="续写设定可选；留空时后端会按当前小说内容自动续写下一章" type="info" :closable="false" show-icon />
+                        </el-form>
+                        <template #footer>
+                            <div class="dialog-footer">
+                                <el-button @click="continueDialogVisible = false">取消</el-button>
+                                <el-button type="primary" @click="submitContinueNovel" :loading="actions.continuing">提交续写</el-button>
+                            </div>
+                        </template>
+                    </el-dialog>
+                </div>
+            `,
+
+            setup() {
+                const ipcRenderer = window.require ? window.require('electron').ipcRenderer : null;
+
+                const CONFIG = {
+                    DEFAULT_API_BASE: 'http://localhost:8080',
+                    CLOUD_API_BASE: 'http://154.8.213.134:8080',
+                    API_PATH: '/api/novel',
+                    STORAGE_KEY: 'apiBase',
+                    REQUEST_TIMEOUT: 30000
+                };
+
+                const apiBase = ref(localStorage.getItem(CONFIG.STORAGE_KEY) || CONFIG.DEFAULT_API_BASE);
+                const novels = ref([]);
+                const chapters = ref([]);
+                const currentNovel = ref(null);
+                const currentChapter = ref(null);
+                const dialogVisible = ref(false);
+                const form = ref({ topic: '', generationSetting: '' });
+                const continueDialogVisible = ref(false);
+                const continueForm = ref({ generationSetting: '' });
+                const contentRef = ref(null);
+                const logContainerRef = ref(null);
+                const activeView = ref('home');
+                const logFilter = ref('all');
+                const logs = ref([]);
+                const sidebarCollapsed = ref(true);
+                const loading = reactive({ novels: false, chapters: false, progress: false });
+                const actions = reactive({ creating: false, continuing: false, autoContinuing: false, exporting: false, refreshing: false });
+                const testing = ref(false);
+                const isCloudServer = ref(false);
+                const connectionStatus = ref({ type: 'info', text: '未连接' });
+                const generationProgress = ref({ outlineReady: false, charactersReady: false, chapterCount: 0, failedCount: 0, status: '未开始' });
+                const outlineInfo = ref({ ready: false, description: '', generationSetting: '' });
+                const characters = ref([]);
+                const generationLogs = ref([]);
+                const workbenchMode = ref('chapters');
+                const chapterListWidth = ref(220);
+
+                let axiosInstance = createAxiosInstance();
+                let stopResizeChapterList = null;
+                let progressTimer = null;
+                let lastObservedChapterCount = 0;
+
+                function createAxiosInstance() {
+                    const instance = axios.create({
+                        baseURL: `${apiBase.value}${CONFIG.API_PATH}`,
+                        timeout: CONFIG.REQUEST_TIMEOUT,
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    instance.interceptors.request.use(config => {
+                        config.metadata = { startTime: Date.now() };
+                        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+                        addLog('🚀 发起请求', 'info');
+                        addLog(`   方法: ${(config.method || 'GET').toUpperCase()}`, 'info');
+                        addLog(`   URL: ${config.baseURL}${config.url}`, 'info');
+                        addLog(`   超时: ${config.timeout}ms`, 'info');
+                        if (config.data) addLog(`   请求体: ${JSON.stringify(config.data)}`, 'info');
+                        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'info');
+                        return config;
+                    }, error => {
+                        addLog(`❌ 请求配置错误: ${error.message}`, 'error');
+                        return Promise.reject(error);
+                    });
+
+                    instance.interceptors.response.use(response => {
+                        const duration = Date.now() - response.config.metadata.startTime;
+                        addLog('✅ 请求成功', 'success');
+                        addLog(`   状态码: ${response.status} ${response.statusText}`, 'success');
+                        addLog(`   耗时: ${duration}ms`, 'success');
+                        addLog(`   数据大小: ${JSON.stringify(response.data).length} 字节`, 'success');
+                        addLog(`   数据类型: ${Array.isArray(response.data) ? 'Array' : typeof response.data}`, 'success');
+                        if (response.data) {
+                            addLog(`   数据预览: ${JSON.stringify(response.data).substring(0, 100)}...`, 'info');
+                        }
+                        return response;
+                    }, error => {
+                        const duration = error.config?.metadata ? Date.now() - error.config.metadata.startTime : 0;
+                        addLog('❌ 请求失败', 'error');
+                        addLog(`   耗时: ${duration}ms`, 'error');
+                        if (error.code === 'ECONNABORTED') {
+                            addLog('   错误类型: 超时 (Timeout)', 'error');
+                            addLog(`   超时设置: ${error.config?.timeout || '未知'}ms`, 'error');
+                            addLog(`   请求地址: ${error.config?.baseURL}${error.config?.url}`, 'error');
+                        } else if (error.code === 'ERR_NETWORK' || (error.message || '').includes('Network Error')) {
+                            addLog('   错误类型: 网络错误 (Network Error)', 'error');
+                            addLog(`   请求地址: ${error.config?.baseURL}${error.config?.url}`, 'error');
+                        } else if (error.response) {
+                            addLog('   错误类型: HTTP 错误', 'error');
+                            addLog(`   状态码: ${error.response.status} ${error.response.statusText}`, 'error');
+                            addLog(`   错误详情: ${JSON.stringify(error.response.data)}`, 'error');
+                        } else {
+                            addLog('   错误类型: 未知错误', 'error');
+                            addLog(`   错误信息: ${error.message}`, 'error');
+                        }
+                        addLog('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━', 'error');
+                        return Promise.reject(error);
+                    });
+
+                    return instance;
+                }
+
+                function addLog(message, type = 'info') {
+                    const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+                    logs.value.push({ time, type, message });
+                    if (logs.value.length > 200) logs.value.shift();
+                    if (activeView.value === 'log' && logContainerRef.value) {
+                        setTimeout(() => {
+                            logContainerRef.value.scrollTop = logContainerRef.value.scrollHeight;
+                        }, 50);
+                    }
+                }
+
+                function filterLog(type) { logFilter.value = type; }
+
+                function clearLogs() {
+                    ElementPlus.ElMessageBox.confirm('确定要清空所有日志吗？', '提示', {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }).then(() => {
+                        logs.value = [];
+                        addLog('日志已清空', 'info');
+                    }).catch(() => {});
+                }
+
+                const handleViewChange = (index) => {
+                    activeView.value = index;
+                    if (index === 'log' && logContainerRef.value) {
+                        setTimeout(() => { logContainerRef.value.scrollTop = logContainerRef.value.scrollHeight; }, 50);
+                    }
+                };
+
+                const filteredLogs = computed(() => logFilter.value === 'all' ? logs.value : logs.value.filter(log => log.type === logFilter.value));
+                const formatCharacter = (character) => character.profile || character.description || character.setting || JSON.stringify(character);
+                const formatGenerationLog = (log) => log.message || log.content || log.status || JSON.stringify(log);
+                const setWorkbenchMode = (mode) => { workbenchMode.value = mode; };
+
+                const toggleSidebar = () => { sidebarCollapsed.value = !sidebarCollapsed.value; };
+
+                const startResizeChapterList = (event) => {
+                    event.preventDefault();
+                    const startX = event.clientX;
+                    const startWidth = chapterListWidth.value;
+                    const minWidth = 220;
+                    const maxWidth = 520;
+                    document.body.classList.add('resizing-chapter-list');
+
+                    const handleMouseMove = (moveEvent) => {
+                        const nextWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + moveEvent.clientX - startX));
+                        chapterListWidth.value = nextWidth;
+                    };
+
+                    const handleMouseUp = () => {
+                        document.body.classList.remove('resizing-chapter-list');
+                        window.removeEventListener('mousemove', handleMouseMove);
+                        window.removeEventListener('mouseup', handleMouseUp);
+                    };
+
+                    window.addEventListener('mousemove', handleMouseMove);
+                    window.addEventListener('mouseup', handleMouseUp);
+                };
+                const switchToCloud = () => { apiBase.value = CONFIG.CLOUD_API_BASE; isCloudServer.value = true; saveConfig(); };
+                const switchToLocal = () => { apiBase.value = CONFIG.DEFAULT_API_BASE; isCloudServer.value = false; saveConfig(); };
+
+                const saveConfig = async () => {
+                    addLog(`正在切换服务器: ${apiBase.value}`, 'info');
+                    if (!apiBase.value.trim()) { showMessage('请输入有效的后端地址', 'warning'); return; }
+                    let baseUrl = apiBase.value.trim();
+                    if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) baseUrl = 'http://' + baseUrl;
+                    apiBase.value = baseUrl;
+                    try {
+                        localStorage.setItem(CONFIG.STORAGE_KEY, apiBase.value);
+                        axiosInstance = createAxiosInstance();
+                        await fetchNovels();
+                        connectionStatus.value = { type: 'success', text: '已连接' };
+                        addLog(`成功连接到: ${apiBase.value}`, 'success');
+                        showMessage('配置保存成功');
+                    } catch (error) {
+                        connectionStatus.value = { type: 'danger', text: '连接失败' };
+                        showErrorMessage(error, '连接后端失败，请检查地址是否正确');
+                    }
+                };
+
+                const testConnection = async () => {
+                    addLog('🔍 开始测试连接', 'info');
+                    testing.value = true;
+                    const startTime = Date.now();
+                    try {
+                        const testAxios = axios.create({ baseURL: `${apiBase.value}${CONFIG.API_PATH}`, timeout: 5000 });
+                        const response = await testAxios.get('/list');
+                        const duration = Date.now() - startTime;
+                        const count = Array.isArray(response.data)
+                            ? response.data.length
+                            : Array.isArray(response.data?.data)
+                                ? response.data.data.length
+                                : Array.isArray(response.data?.list)
+                                    ? response.data.list.length
+                                    : '未知';
+                        addLog('📥 收到响应', 'success');
+                        addLog(`   状态码: ${response.status}`, 'success');
+                        addLog(`   耗时: ${duration}ms`, 'success');
+                        addLog(`   数据条数: ${count}`, 'success');
+                        connectionStatus.value = { type: 'success', text: '连接正常' };
+                        showMessage('连接测试成功');
+                    } catch (error) {
+                        const duration = Date.now() - startTime;
+                        addLog('❌ 连接测试失败', 'error');
+                        addLog(`   耗时: ${duration}ms`, 'error');
+                        if (error.code === 'ECONNABORTED') addLog(`   原因: 请求超时 (${duration}ms > 5000ms)`, 'error');
+                        else if (error.code === 'ERR_NETWORK') addLog(`   原因: 网络连接失败`, 'error');
+                        connectionStatus.value = { type: 'danger', text: '连接异常' };
+                        showErrorMessage(error, '无法连接到后端服务');
+                    } finally {
+                        testing.value = false;
+                    }
+                };
+
+                const fetchNovels = async () => {
+                    loading.novels = true;
+                    try {
+                        const res = await axiosInstance.get('/list');
+                        addLog(`📦 原始响应: ${JSON.stringify(res.data).substring(0, 200)}...`, 'info');
+                        let data = res.data;
+                        if (data && data.data) data = data.data;
+                        if (data && data.list) data = data.list;
+                        novels.value = Array.isArray(data) ? data : [];
+                        addLog(`✅ 获取小说列表成功，共 ${novels.value.length} 部`, novels.value.length ? 'success' : 'warning');
+                    } catch (error) {
+                        addLog(`❌ 获取小说列表失败: ${error.message}`, 'error');
+                        showErrorMessage(error, '获取小说列表失败');
+                        novels.value = [];
+                    } finally { loading.novels = false; }
+                };
+
+                const fetchChapters = async (novelId) => {
+                    loading.chapters = true;
+                    try {
+                        const res = await axiosInstance.get(`/${novelId}/chapters`);
+                        chapters.value = normalizeList(res.data);
+                        chapters.value.sort((a, b) => a.chapterNumber - b.chapterNumber);
+                        addLog(`获取章节列表成功，共 ${chapters.value.length} 章`, 'success');
+                    } catch (error) {
+                        addLog(`获取章节列表失败: ${error.message}`, 'error');
+                        showErrorMessage(error, '获取章节列表失败');
+                        chapters.value = [];
+                    } finally { loading.chapters = false; }
+                };
+
+                const normalizeList = (data) => {
+                    if (Array.isArray(data)) return data;
+                    if (Array.isArray(data?.data)) return data.data;
+                    if (Array.isArray(data?.list)) return data.list;
+                    return [];
+                };
+
+                const resetGenerationState = () => {
+                    generationProgress.value = { outlineReady: false, charactersReady: false, chapterCount: 0, failedCount: 0, status: '未开始' };
+                    outlineInfo.value = { ready: false, description: '', generationSetting: '' };
+                    characters.value = [];
+                    generationLogs.value = [];
+                    workbenchMode.value = 'chapters';
+                    lastObservedChapterCount = 0;
+                };
+
+                const stopProgressPolling = () => {
+                    if (progressTimer) clearInterval(progressTimer);
+                    progressTimer = null;
+                };
+
+                const fetchNovelInfo = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}`);
+                    const data = res.data?.data || res.data;
+                    if (data && currentNovel.value?.id === novelId) currentNovel.value = { ...currentNovel.value, ...data };
+                };
+
+                const fetchOutline = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/outline`);
+                    const data = res.data?.data || res.data || {};
+                    outlineInfo.value = {
+                        ready: !!data.ready,
+                        description: data.description || data.outline || '',
+                        generationSetting: data.generationSetting || data.generation_setting || ''
+                    };
+                    if (outlineInfo.value.generationSetting && currentNovel.value?.id === novelId) {
+                        currentNovel.value = { ...currentNovel.value, generationSetting: outlineInfo.value.generationSetting };
+                    }
+                };
+
+                const fetchCharacters = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/characters`);
+                    characters.value = normalizeList(res.data);
+                };
+
+                const fetchGenerationLogs = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/generation-logs`);
+                    generationLogs.value = normalizeList(res.data);
+                };
+
+                const refreshGenerationState = async () => {
+                    if (!currentNovel.value) return;
+                    const novelId = currentNovel.value.id;
+                    loading.progress = true;
+                    try {
+                        const res = await axiosInstance.get(`/${novelId}/progress`);
+                        const progress = res.data?.data || res.data || {};
+                        const previousChapterCount = lastObservedChapterCount;
+                        generationProgress.value = {
+                            outlineReady: !!progress.outlineReady,
+                            charactersReady: !!progress.charactersReady,
+                            chapterCount: Number(progress.chapterCount || 0),
+                            failedCount: Number(progress.failedCount || 0),
+                            status: progress.status || '生成中'
+                        };
+                        if (generationProgress.value.outlineReady) await fetchOutline(novelId);
+                        if (generationProgress.value.charactersReady) await fetchCharacters(novelId);
+                        if (generationProgress.value.chapterCount !== previousChapterCount || chapters.value.length === 0) {
+                            await fetchChapters(novelId);
+                            lastObservedChapterCount = generationProgress.value.chapterCount;
+                        }
+                        await fetchGenerationLogs(novelId);
+                        const doneStatuses = ['completed', 'complete', 'done', 'finished', 'success', '已完成', '完成'];
+                        const failedStatuses = ['failed', 'error', '失败'];
+                        const normalizedStatus = String(generationProgress.value.status || '').toLowerCase();
+                        if (doneStatuses.includes(normalizedStatus) || failedStatuses.includes(normalizedStatus)) stopProgressPolling();
+                    } catch (error) {
+                        addLog(`刷新生成进度失败: ${error.message}`, 'error');
+                    } finally { loading.progress = false; }
+                };
+
+                const startProgressPolling = () => {
+                    stopProgressPolling();
+                    refreshGenerationState();
+                    progressTimer = setInterval(refreshGenerationState, 2500);
+                };
+
+                const waitForCreatedNovel = async (existingNovelIds, createdId) => {
+                    for (let i = 0; i < 6; i++) {
+                        await fetchNovels();
+                        const matched = novels.value.find(n => n.id === createdId) || novels.value.find(n => !existingNovelIds.has(n.id));
+                        if (matched) return matched;
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                    }
+                    return null;
+                };
+
+                const selectNovel = async (row) => {
+                    stopProgressPolling();
+                    resetGenerationState();
+                    currentNovel.value = row;
+                    currentChapter.value = null;
+                    await fetchNovelInfo(row.id);
+                    await fetchChapters(row.id);
+                    lastObservedChapterCount = chapters.value.length;
+                    startProgressPolling();
+                };
+
+                const refreshChapters = async () => {
+                    if (!currentNovel.value) return;
+                    actions.refreshing = true;
+                    try { await fetchChapters(currentNovel.value.id); showMessage('章节列表已刷新'); }
+                    finally { actions.refreshing = false; }
+                };
+
+                const handleChapterSelect = (index) => {
+                    const chapter = chapters.value.find(c => c.id == index);
+                    if (chapter) {
+                        currentChapter.value = chapter;
+                        setTimeout(() => { if (contentRef.value) contentRef.value.scrollTop = 0; }, 100);
+                    }
+                };
+
+                const backToNovelList = () => {
+                    stopProgressPolling();
+                    currentNovel.value = null;
+                    currentChapter.value = null;
+                    chapters.value = [];
+                    resetGenerationState();
+                };
+                const openCreateDialog = () => { form.value = { topic: '', generationSetting: '' }; dialogVisible.value = true; };
+
+                const submitCreate = async () => {
+                    if (!form.value.topic.trim()) { showMessage('请输入小说题材', 'warning'); return; }
+                    actions.creating = true;
+                    try {
+                        const existingNovelIds = new Set(novels.value.map(n => n.id));
+                        const createRes = await axiosInstance.post('/create', {
+                            topic: form.value.topic.trim(),
+                            generationSetting: form.value.generationSetting.trim()
+                        });
+                        dialogVisible.value = false;
+                        showMessage('创作任务已提交，正在刷新列表并跟踪生成进度');
+                        const created = createRes.data?.data || createRes.data || {};
+                        const createdId = created.id || created.novelId;
+                        const targetNovel = await waitForCreatedNovel(existingNovelIds, createdId);
+                        if (targetNovel) await selectNovel(targetNovel);
+                        else showMessage('任务已提交，暂未在列表中发现新作品，请稍后手动刷新', 'warning');
+                    } catch (error) {
+                        showErrorMessage(error, '创建小说失败');
+                    } finally { actions.creating = false; }
+                };
+
+                const continueNovel = () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    continueForm.value = { generationSetting: '' };
+                    continueDialogVisible.value = true;
+                };
+
+                const submitContinueNovel = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    actions.continuing = true;
+                    try {
+                        await axiosInstance.post(`/${currentNovel.value.id}/continue`, {
+                            generationSetting: continueForm.value.generationSetting.trim()
+                        });
+                        continueDialogVisible.value = false;
+                        showMessage('续写任务已提交，正在跟踪生成进度');
+                        startProgressPolling();
+                    } catch (error) {
+                        showErrorMessage(error, '续写失败');
+                    } finally { actions.continuing = false; }
+                };
+
+                const autoContinueNovel = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    actions.autoContinuing = true;
+                    try {
+                        await axiosInstance.post(`/${currentNovel.value.id}/auto-continue`);
+                        showMessage('自动续写任务已提交，正在跟踪生成进度');
+                        startProgressPolling();
+                    } catch (error) {
+                        showErrorMessage(error, '自动续写失败');
+                    } finally { actions.autoContinuing = false; }
+                };
+
+                const exportNovel = async () => {
+                    if (!currentNovel.value || chapters.value.length === 0) { showMessage('没有可导出的内容', 'warning'); return; }
+                    actions.exporting = true;
+                    try {
+                        const res = await axiosInstance.get(`/${currentNovel.value.id}/export`, { responseType: 'text' });
+                        const blob = new Blob([res.data], { type: 'text/plain;charset=utf-8' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${currentNovel.value.title}.txt`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                        showMessage('导出成功');
+                    } catch (error) {
+                        showErrorMessage(error, '导出失败');
+                    } finally { actions.exporting = false; }
+                };
+
+                const handleDeleteNovel = async (row) => {
+                    ElementPlus.ElMessageBox.confirm(`确定要删除小说《${row.title}》吗？此操作不可恢复！`, '提示', {
+                        confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning'
+                    }).then(async () => {
+                        try {
+                            await axiosInstance.delete(`/${row.id}`);
+                            showMessage('删除成功');
+                            if (currentNovel.value && currentNovel.value.id === row.id) backToNovelList();
+                            await fetchNovels();
+                        } catch (error) {
+                            showErrorMessage(error, '删除失败');
+                        }
+                    }).catch(() => {});
+                };
+
+                const minimizeWindow = () => ipcRenderer?.send('window-minimize');
+                const maximizeWindow = () => ipcRenderer?.send('window-maximize');
+                const closeWindow = () => ipcRenderer?.send('window-close');
+
+                function showMessage(message, type = 'success') {
+                    addLog(message, type);
+                    ElementPlus.ElMessage({ message, type, duration: 2500, showClose: true });
+                }
+
+                function showErrorMessage(error, defaultMessage) {
+                    console.error(error);
+                    const message = error.response?.data?.message || error.message || defaultMessage;
+                    addLog(message, 'error');
+                    ElementPlus.ElMessage({ message, type: 'error', duration: 3500, showClose: true });
+                }
+
+                onMounted(() => {
+                    addLog('应用启动', 'info');
+                    addLog(`默认服务器: ${CONFIG.DEFAULT_API_BASE}`, 'info');
+                    isCloudServer.value = apiBase.value === CONFIG.CLOUD_API_BASE;
+                    fetchNovels();
+                    testConnection();
+                });
+
+                onBeforeUnmount(() => { stopProgressPolling(); });
+
+                return {
+                    novels, chapters, currentNovel, currentChapter, dialogVisible, form, continueDialogVisible, continueForm,
+                    generationProgress, outlineInfo, characters, generationLogs, workbenchMode, contentRef, logContainerRef,
+                    activeView, logFilter, filteredLogs, loading, actions, testing, isCloudServer, connectionStatus,
+                    chapterListWidth, startResizeChapterList,
+                    sidebarCollapsed, toggleSidebar, switchToCloud, switchToLocal, testConnection, saveConfig,
+                    fetchNovels, selectNovel, refreshChapters, refreshGenerationState, handleChapterSelect, backToNovelList,
+                    openCreateDialog, submitCreate, continueNovel, submitContinueNovel, autoContinueNovel, exportNovel, handleDeleteNovel,
+                    filterLog, clearLogs, formatCharacter, formatGenerationLog, setWorkbenchMode, handleViewChange, minimizeWindow, maximizeWindow, closeWindow
+                };
+            }
+        };
+
+        createApp(App).use(ElementPlus).mount('#app');
+    </script>
+
+    <style>
+        :root {
+            --bg: #edf3fb;
+            --panel: rgba(255, 255, 255, 0.82);
+            --panel-strong: rgba(255, 255, 255, 0.96);
+            --line: rgba(15, 23, 42, 0.09);
+            --text: #0f172a;
+            --muted: #64748b;
+            --primary: #2563eb;
+            --primary-2: #1d4ed8;
+            --primary-soft: rgba(37, 99, 235, 0.12);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 18px;
+            --radius-sm: 12px;
+            --shadow: 0 18px 45px rgba(15, 23, 42, 0.10);
+            --shadow-soft: 0 10px 25px rgba(15, 23, 42, 0.06);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background:
+                radial-gradient(circle at 8% 0%, rgba(37, 99, 235, 0.20), transparent 28%),
+                radial-gradient(circle at 92% 6%, rgba(20, 184, 166, 0.16), transparent 26%),
+                radial-gradient(circle at 50% 100%, rgba(124, 58, 237, 0.08), transparent 30%),
+                linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app-shell {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 8px 16px 16px;
+            gap: 12px;
+        }
+
+        .titlebar, .sidebar, .page .panel, .page-head {
+            background: var(--panel);
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .titlebar {
+            min-height: 58px;
+            border-radius: var(--radius);
+            display: grid;
+            grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 6px 8px 14px;
+            -webkit-app-region: drag;
+            overflow: hidden;
+            background:
+                linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(20, 184, 166, 0.06) 48%, rgba(255,255,255,0.88)),
+                var(--panel);
+        }
+
+        .titlebar-left, .titlebar-center, .titlebar-actions { display: flex; align-items: center; }
+        .titlebar-left { min-width: 0; }
+        .titlebar-center {
+            justify-content: flex-end;
+            gap: 8px;
+            min-width: 0;
+            -webkit-app-region: no-drag;
+        }
+        .titlebar-actions { -webkit-app-region: no-drag; height: 100%; justify-content: flex-end; }
+        .app-mark {
+            width: 22px; height: 22px; border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary), #14b8a6);
+            color: #fff; display:flex; align-items:center; justify-content:center;
+            font-weight: 800; font-size: 12px; margin-right: 9px;
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.20);
+        }
+        .app-name { font-size: 13px; font-weight: 800; line-height: 1; letter-spacing: .2px; }
+        .app-subtitle { font-size: 10px; color: var(--muted); line-height: 1.2; margin-top: 4px; }
+        .titlebar .el-button,
+        .titlebar .el-tag,
+        .titlebar .chip {
+            -webkit-app-region: no-drag;
+        }
+        .titlebar .el-button { min-height: 28px; }
+        .service-switch { flex-shrink: 0; }
+        .window-btn {
+            width: 44px; height: 38px; border: none; background: transparent; cursor: pointer; color: #475569;
+            transition: background .18s ease, color .18s ease;
+        }
+        .window-btn:hover { background: rgba(15, 23, 42, 0.07); }
+        .window-btn.close:hover { background: #e81123; color: #fff; }
+
+        .top-toolbar {
+            border-radius: var(--radius);
+            padding: 15px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            flex-wrap: wrap;
+            background:
+                linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(20, 184, 166, 0.07) 46%, rgba(255,255,255,0.88)),
+                var(--panel);
+        }
+        .toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+        .toolbar-brand { display:flex; flex-direction:column; gap:3px; padding-right: 12px; border-right: 1px solid var(--line); }
+        .toolbar-label { font-size: 11px; color: var(--muted); }
+        .toolbar-value { font-size: 14px; font-weight: 800; letter-spacing: .2px; }
+        .chip { font-size: 12px; padding: 6px 11px; border-radius: 999px; background: rgba(37, 99, 235, 0.09); color: #1e3a8a; white-space: nowrap; border: 1px solid rgba(37,99,235,0.10); }
+        .chip-muted { background: rgba(15, 23, 42, 0.05); color: #334155; max-width: 360px; overflow: hidden; text-overflow: ellipsis; border-color: rgba(15,23,42,0.06); }
+
+        .workspace { flex: 1; display: flex; gap: 14px; min-height: 0; }
+        .sidebar { width: 224px; border-radius: var(--radius); padding: 13px; flex-shrink: 0; display:flex; flex-direction:column; background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.82)); }
+        .sidebar.collapsed { width: 88px; }
+        .sidebar-head { display:flex; align-items:center; gap:10px; margin-bottom: 12px; padding: 11px; border-radius: 16px; background: linear-gradient(135deg, rgba(37,99,235,0.11), rgba(20,184,166,0.08)); cursor: pointer; user-select: none; transition: background .18s ease, transform .18s ease; }
+        .sidebar-head:hover { background: linear-gradient(135deg, rgba(37,99,235,0.16), rgba(20,184,166,0.12)); transform: translateY(-1px); }
+        .sidebar-logo { width: 38px; height:38px; border-radius: 13px; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; background: linear-gradient(135deg, var(--primary), #14b8a6); box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22); }
+        .sidebar-title { min-width:0; }
+        .sidebar-name { font-size: 14px; font-weight: 800; }
+        .sidebar-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+        .sidebar.collapsed .sidebar-head { justify-content: center; padding: 11px 0; }
+        .nav-menu { border-right:none; background: transparent; }
+        .nav-menu .el-menu-item { border-radius: 14px; margin-bottom: 8px; height: 48px; line-height: 48px; font-weight: 700; display:flex; align-items:center; color: #334155; transition: all .18s ease; }
+        .nav-menu .el-menu-item:hover { background: rgba(37, 99, 235, 0.08); color: var(--primary); }
+        .nav-menu .el-menu-item.is-active { background: linear-gradient(135deg, rgba(37,99,235,0.14), rgba(20,184,166,0.10)); color: var(--primary); }
+        .nav-icon { display:inline-flex; width:26px; height:26px; align-items:center; justify-content:center; border-radius: 9px; background: rgba(37, 99, 235, 0.10); margin-right: 9px; }
+        .sidebar.collapsed .sidebar-title,
+        .sidebar.collapsed .nav-text {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .sidebar.collapsed .nav-menu .el-menu-item { justify-content:center; padding: 0 !important; width: 100%; }
+        .sidebar.collapsed .nav-menu .el-menu-tooltip__trigger { justify-content: center; padding: 0 !important; width: 100%; }
+        .sidebar.collapsed .nav-menu { width: 100%; }
+        .sidebar.collapsed .nav-icon { margin-right: 0; flex-shrink: 0; }
+        .sidebar.collapsed .nav-menu .el-menu-item > span:not(.nav-icon) {
+            display: none;
+        }
+        .sidebar.collapsed .nav-menu .el-menu-item .nav-text {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        .content { flex:1; min-width:0; overflow:hidden; padding-right: 0; }
+        .page { display:flex; flex-direction:column; gap: 10px; height: 100%; min-height: 0; overflow:hidden; padding-bottom: 8px; }
+        .page-head {
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap: 12px;
+            min-height: 50px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(246,250,255,0.88));
+        }
+        .page-titleline { display:flex; align-items:center; gap: 10px; min-width:0; white-space: nowrap; }
+        .page-head h1 { margin: 0; font-size: 16px; line-height: 1.2; letter-spacing: -.2px; flex-shrink: 0; }
+        .page-head p { margin:0; color: var(--muted); font-size: 12px; line-height: 1.4; max-width: none; overflow:hidden; text-overflow:ellipsis; white-space: nowrap; }
+        .page-head-tight { padding-top: 10px; padding-bottom: 10px; }
+        .eyebrow { font-size: 11px; color: var(--primary); font-weight: 800; letter-spacing: .6px; flex-shrink: 0; }
+        .titleline-divider { width: 1px; height: 16px; background: var(--line); flex-shrink: 0; }
+        .page-head-actions { display:flex; align-items:center; gap: 8px; flex-wrap: nowrap; flex-shrink: 0; }
+        .stat-card { min-width: 70px; padding: 6px 10px; border-radius: 14px; background: rgba(15, 23, 42, 0.045); text-align:center; border: 1px solid rgba(15,23,42,0.04); }
+        .stat-value { font-size: 16px; font-weight: 900; line-height: 1; color: var(--primary); }
+        .stat-label { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+        .content-grid { flex: 1; min-height:0; overflow:hidden; }
+        .panel { border-radius: var(--radius); overflow:hidden; min-height: 0; background: rgba(255,255,255,0.92); }
+        .panel-header { display:flex; align-items:center; justify-content:space-between; gap: 12px; }
+        .panel-header-vertical { align-items:flex-start; flex-direction: column; }
+        .panel-title { font-size: 16px; font-weight: 800; }
+        .panel-subtitle { font-size: 12px; color: var(--muted); margin-top: 5px; }
+        .setting-preview { color: #475569; }
+        .novel-setting {
+            margin-top: 8px;
+            max-width: 920px;
+            color: #475569;
+            font-size: 12px;
+            line-height: 1.6;
+            padding: 8px 10px;
+            border-radius: 12px;
+            background: rgba(37, 99, 235, 0.06);
+            border: 1px solid rgba(37, 99, 235, 0.08);
+        }
+        .novel-setting span { color: var(--primary); font-weight: 800; }
+        .table-wrap { height: calc(100vh - 240px); min-height: 340px; overflow:auto; border-radius: 0 0 var(--radius) var(--radius); }
+        .table-wrap .el-table__row { cursor: pointer; }
+
+        .panel-workbench { height: 100%; min-height: 500px; display: flex; flex-direction: column; margin-bottom: 0; }
+        .stage-pill { display:inline-flex; align-items:center; height: 32px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 800; border: 1px solid transparent; cursor: pointer; background: rgba(100,116,139,.12); color: #475569; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+        .stage-pill:hover { transform: translateY(-1px); }
+        .stage-pill.done { background: rgba(16,185,129,.13); color: #047857; }
+        .stage-pill.pending { background: rgba(245,158,11,.14); color: #92400e; }
+        .stage-pill.danger { background: rgba(239,68,68,.12); color: #b91c1c; cursor: default; }
+        .stage-pill.active { box-shadow: 0 0 0 2px rgba(37,99,235,.16); border-color: rgba(37,99,235,.35); background: rgba(37,99,235,.12); color: var(--primary); }
+        .progress-status { display:inline-flex; align-items:center; color: var(--muted); font-size: 12px; height: 32px; }
+        .generation-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .generation-card { min-height: 96px; max-height: 150px; overflow:auto; border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: rgba(248,250,252,.72); }
+        .generation-card-title { font-size: 12px; font-weight: 900; color: var(--primary); margin-bottom: 6px; }
+        .generation-card-content { font-size: 12px; color: #334155; line-height: 1.55; }
+        .generation-card-content p { margin: 0 0 6px; }
+        .generation-empty { color: var(--muted); font-size: 12px; padding-top: 12px; }
+        .character-item, .generation-log-item { display:flex; gap: 8px; margin-bottom: 5px; }
+        .character-item strong, .generation-log-item span { flex: 0 0 auto; color: #0f766e; }
+        .generation-log-item em { font-style: normal; color: #475569; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .stage-detail { flex: 1; min-height: 0; overflow:auto; padding: 18px; background: radial-gradient(circle at top right, rgba(37,99,235,0.06), transparent 34%); }
+        .stage-detail-card { min-height: 100%; border-radius: 18px; background: var(--panel-strong); border: 1px solid rgba(15, 23, 42, 0.07); padding: 26px 30px; box-shadow: var(--shadow-soft); }
+        .stage-detail-head { display:flex; align-items:center; justify-content:space-between; gap: 12px; padding-bottom: 12px; margin-bottom: 18px; border-bottom: 1px solid rgba(37,99,235,0.14); }
+        .stage-detail-head h3 { margin:0; font-size: 21px; }
+        .stage-detail-content { max-width: 980px; margin: 0 auto; color: #243246; line-height: 1.95; font-size: 16px; }
+        .stage-detail-content section + section { margin-top: 24px; }
+        .stage-detail-content h4, .character-card h4 { margin: 0 0 10px; color: var(--primary); font-size: 15px; }
+        .stage-detail-content p, .character-card p { margin:0; white-space: pre-wrap; }
+        .character-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+        .character-card { padding: 16px; border-radius: 16px; border: 1px solid var(--line); background: rgba(248,250,252,.76); color: #334155; line-height: 1.75; }
+        .panel-workbench .el-card__body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+        .workbench { display:grid; grid-template-columns: minmax(220px, 520px) 8px minmax(0, 1fr); gap: 0; flex: 1; height: 100%; min-height: 0; background: linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.30)); overflow:hidden; }
+        .chapter-list { border-right: 1px solid var(--line); overflow-y:scroll; overflow-x:hidden; background: rgba(248,250,252,0.78); height: 100%; min-height: 0; padding: 8px; }
+        .chapter-resizer { cursor: col-resize; background: linear-gradient(180deg, rgba(37,99,235,0.08), rgba(20,184,166,0.08)); position: relative; }
+        .chapter-resizer::after { content: ''; position: absolute; top: 50%; left: 50%; width: 3px; height: 42px; border-radius: 999px; background: rgba(37,99,235,0.28); transform: translate(-50%, -50%); transition: background .18s ease, height .18s ease; }
+        .chapter-resizer:hover::after,
+        body.resizing-chapter-list .chapter-resizer::after { height: 64px; background: rgba(37,99,235,0.55); }
+        body.resizing-chapter-list { cursor: col-resize; user-select: none; }
+        .chapter-list .el-menu { border-right: none; background: transparent; }
+        .chapter-list .el-menu-item { border-radius: 12px; margin-bottom: 6px; height: 44px; line-height: 44px; }
+        .reader { min-width:0; padding: 12px; overflow-y:scroll; overflow-x:hidden; height: 100%; min-height: 0; background: radial-gradient(circle at top right, rgba(37,99,235,0.06), transparent 34%); }
+        .chapter-item { display:flex; align-items:center; gap: 9px; width:100%; min-width:0; }
+        .chapter-number { color: var(--primary); font-weight: 900; flex-shrink:0; }
+        .chapter-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .chapter-content {
+            white-space: pre-wrap;
+            line-height: 2.05;
+            font-size: 16px;
+            color: #243246;
+            padding: 30px 34px;
+            border-radius: 18px;
+            background: var(--panel-strong);
+            border: 1px solid rgba(15, 23, 42, 0.07);
+            min-height: 100%;
+            overflow: visible;
+            max-width: 980px;
+            margin: 0 auto;
+            box-shadow: var(--shadow-soft);
+        }
+        .chapter-content h3 { margin: 0 0 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(37,99,235,0.14); font-size: 21px; letter-spacing: -.2px; }
+        .chapter-setting {
+            margin: 0 0 18px;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(245, 158, 11, 0.09);
+            border: 1px solid rgba(245, 158, 11, 0.18);
+            color: #7c4a03;
+            line-height: 1.7;
+        }
+        .chapter-setting p { margin: 6px 0 0; text-indent: 0; }
+        .chapter-content p { margin: 0; text-indent: 2em; }
+        .empty-panel { min-height: 100%; display:flex; align-items:center; justify-content:center; border-radius: 16px; background: rgba(255,255,255,0.45); }
+        .empty-icon { font-size: 72px; }
+
+        .action-bar { display:flex; align-items:center; flex-wrap:wrap; gap: 9px; }
+        .log-toolbar { margin: 2px 0 0; }
+        .log-panel {
+            flex:1;
+            min-height: 0;
+            border-radius: var(--radius);
+            background: linear-gradient(180deg, #171b24 0%, #10131a 100%);
+            color: #dce4ff;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.65;
+            padding: 18px;
+            overflow:auto;
+            min-height: calc(100vh - 232px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 16px 34px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(255,255,255,0.06);
+        }
+        .log-entry { margin-bottom: 8px; padding: 8px 11px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.04); }
+        .log-time { color: #a4b2df; margin-right: 10px; }
+        .log-badge { font-weight:700; margin-right: 8px; }
+        .log-info { color: #89ddff; } .log-success { color: #8be9a7; } .log-warning { color: #ffd479; } .log-error { color: #ff8f9f; }
+        .log-empty { color: #9ba8cc; text-align:center; padding: 50px 0; }
+
+        .dialog-footer { display:flex; justify-content:flex-end; gap: 10px; }
+        .el-card { border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.72); box-shadow: var(--shadow); }
+        .el-card__header { background: rgba(248,250,252,0.82); border-bottom: 1px solid rgba(15,23,42,0.07); padding: 12px 14px; }
+        .el-card__body { padding: 0; }
+        .el-table { --el-table-header-bg-color: rgba(248, 250, 252, 0.88); --el-table-row-hover-bg-color: rgba(37, 99, 235, 0.06); }
+        .el-table th.el-table__cell { font-weight: 800; color: #334155; }
+        .el-table .el-table__cell { padding: 13px 0; }
+        .el-button { border-radius: 11px; font-weight: 700; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+        .el-button:hover { transform: translateY(-1px); }
+        .el-button--primary { background: linear-gradient(135deg, var(--primary), var(--primary-2)); border:none; box-shadow: 0 9px 18px rgba(37,99,235,0.22); }
+        .el-tag { border-radius: 999px; font-weight: 800; }
+        .el-dialog { border-radius: 20px; overflow: hidden; }
+        .el-input__wrapper { border-radius: 12px; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #6d88ff, #8f72ff); border-radius: 999px; }
+        ::-webkit-scrollbar-track { background: rgba(90,112,200,0.10); border-radius: 999px; }
+
+        @media (max-width: 1200px) {
+            .titlebar { grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) auto; }
+            .titlebar-center .chip-muted { display: none; }
+            .workbench { grid-template-columns: 260px 1fr; }
+            .page-head { flex-direction: column; align-items: flex-start; }
+            .page-titleline { flex-wrap: wrap; white-space: normal; }
+            .page-head p { white-space: normal; }
+        }
+        @media (max-width: 900px) {
+            body { overflow:auto; }
+            .app-shell { height:auto; min-height:100vh; }
+            .titlebar {
+                grid-template-columns: 1fr auto;
+                align-items: start;
+            }
+            .titlebar-center {
+                grid-column: 1 / -1;
+                grid-row: 2;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                padding-right: 8px;
+            }
+            .titlebar-actions { grid-column: 2; grid-row: 1; }
+            .workspace { flex-direction: column; }
+            .sidebar { width:100%; }
+            .sidebar.collapsed { width:100%; }
+            .workbench { grid-template-columns: 1fr !important; height: auto; max-height: none; overflow: visible; }
+            .panel-workbench { height: auto; min-height: 0; }
+            .generation-grid { grid-template-columns: 1fr; }
+            .panel-workbench .el-card__body { overflow: visible; display: block; }
+            .chapter-resizer { display: none; }
+            .chapter-list { border-right:none; border-bottom: 1px solid var(--line); height: auto; max-height: 280px; overflow-y: auto; }
+            .table-wrap, .log-panel { min-height: 320px; height:auto; }
+            .content { overflow: visible; padding-right: 0; }
+            .reader { height: auto; overflow-y: visible; }
+            .chapter-content { padding: 24px; }
+        }
+        @media (max-width: 620px) {
+            .app-shell { padding: 8px 10px 10px; }
+            .titlebar { grid-template-columns: auto 1fr auto; gap: 8px; }
+            .titlebar-text { display: none; }
+            .titlebar-center { gap: 6px; }
+            .service-switch { display: none; }
+            .chip { max-width: 100%; }
+            .page-head { padding: 12px; }
+            .page-head h1 { font-size: 16px; }
+            .page-head p { font-size: 12px; }
+            .chapter-content { font-size: 15px; line-height: 1.95; padding: 20px; }
+        }
+    </style>
+</body>
+</html>
