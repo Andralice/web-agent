@@ -1,0 +1,27 @@
+{
+  "name": "novel-agent-desktop",
+  "productName": "网页助手",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.agent.novel",
+    "productName": "网页助手",
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "dependencies": {
+    "axios": "^1.15.2",
+    "element-plus": "^2.13.7",
+    "vue": "^3.5.33"
+  }
+}

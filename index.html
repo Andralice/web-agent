@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>网页助手</title>
+    <title>中文创作台</title>
     <link rel="stylesheet" href="./node_modules/element-plus/dist/index.css" />
 </head>
 <body>
@@ -20,22 +20,22 @@
                 <div class="app-shell">
                     <header class="titlebar">
                         <div class="titlebar-left">
-                            <div class="app-mark">W</div>
+                            <div class="app-mark">中</div>
                             <div class="titlebar-text">
-                                <div class="app-name">网页助手</div>
-                                <div class="app-subtitle">小说创作与管理工作台</div>
+                                <div class="app-name">中文创作台</div>
                             </div>
                         </div>
                         <div class="titlebar-center">
-                            <span class="chip">作品 {{ novels.length }}</span>
-                            <span class="chip chip-muted" v-if="currentNovel">当前：{{ currentNovel.title }}</span>
-                            <span class="chip chip-muted" v-else>未选择作品</span>
-                            <el-button-group class="service-switch">
-                                <el-button size="small" :type="!isCloudServer ? 'primary' : ''" :disabled="!isCloudServer" @click="switchToLocal">本地服务</el-button>
-                                <el-button size="small" :type="isCloudServer ? 'primary' : ''" :disabled="isCloudServer" @click="switchToCloud">云端服务</el-button>
-                            </el-button-group>
-                            <el-tag size="small" :type="connectionStatus.type">{{ connectionStatus.text }}</el-tag>
-                            <el-button size="small" type="primary" plain @click="testConnection" :loading="testing">测试连接</el-button>
+                            <span class="current-novel-chip" v-if="currentNovel">{{ currentNovel.title }}</span>
+                            <div class="service-cluster">
+                                <span class="service-label">服务</span>
+                                <el-button-group class="service-switch compact-service-switch">
+                                    <el-button size="small" :type="!isCloudServer ? 'primary' : ''" :disabled="!isCloudServer" @click="switchToLocal">本地</el-button>
+                                    <el-button size="small" :type="isCloudServer ? 'primary' : ''" :disabled="isCloudServer" @click="switchToCloud">云端</el-button>
+                                </el-button-group>
+                                <el-tag size="small" :type="connectionStatus.type">{{ connectionStatus.text }}</el-tag>
+                                <el-button size="small" plain @click="testConnection" :loading="testing">测试</el-button>
+                            </div>
                         </div>
                         <div class="titlebar-actions">
                             <button class="window-btn" @click="minimizeWindow" title="最小化">—</button>
@@ -47,13 +47,17 @@
                     <div class="workspace">
                         <aside class="sidebar" :class="{ collapsed: sidebarCollapsed }">
                             <div class="sidebar-head" @click="toggleSidebar" title="点击收起/展开导航">
-                                <div class="sidebar-logo">{{ sidebarCollapsed ? 'W' : 'WP' }}</div>
+                                <div class="sidebar-logo">{{ sidebarCollapsed ? '中' : '创' }}</div>
                                 <div class="sidebar-title" v-show="!sidebarCollapsed">
-                                    <div class="sidebar-name">网页助手</div>
-                                    <div class="sidebar-desc">内容创作平台</div>
+                                    <div class="sidebar-name">中文创作台</div>
+                                    <div class="sidebar-desc">创作平台</div>
                                 </div>
                             </div>
                             <el-menu class="nav-menu" :default-active="activeView" @select="handleViewChange">
+                                <el-menu-item index="dashboard">
+                                    <span class="nav-icon">首</span>
+                                    <span class="nav-text">主页</span>
+                                </el-menu-item>
                                 <el-menu-item index="home">
                                     <span class="nav-icon">创</span>
                                     <span class="nav-text">创作中心</span>
@@ -66,29 +70,79 @@
                         </aside>
 
                         <main class="content">
-                            <section v-show="activeView === 'home'" class="page">
-                                <div class="page-head">
-                                    <div class="page-titleline">
-                                        <span class="eyebrow">中文创作工作台</span>
-                                        <span class="titleline-divider"></span>
-                                        <h1>智能内容创作中枢</h1>
-                                        <p>统一管理作品、章节、阅读与导出流程，让创作更稳定、更高效。</p>
-                                    </div>
-                                    <div class="page-head-actions">
-                                        <div class="stat-card">
-                                            <div class="stat-value">{{ novels.length }}</div>
-                                            <div class="stat-label">作品数量</div>
+                            <section v-show="activeView === 'dashboard'" class="page dashboard-page">
+                                <div class="dashboard-hero">
+                                    <div class="hero-copy">
+                                        <span class="hero-eyebrow">AI 小说创作工作台</span>
+                                        <h1>把灵感推进成完整作品</h1>
+                                        <p>从题材设定、大纲角色到章节续写，集中管理你的创作流程，让每一本小说都有清晰的成长路径。</p>
+                                        <div class="hero-actions">
+                                            <el-button type="primary" size="large" @click="openCreateDialog">新建作品</el-button>
+                                            <el-button size="large" @click="activeView = 'home'">进入作品库</el-button>
                                         </div>
-                                        <el-button type="primary" size="large" @click="openCreateDialog">+ 新建作品</el-button>
+                                    </div>
+                                    <div class="hero-card">
+                                        <div class="hero-card-head">
+                                            <span>创作概览</span>
+                                            <el-tag size="small" :type="connectionStatus.type">{{ connectionStatus.text }}</el-tag>
+                                        </div>
+                                        <div class="hero-metrics">
+                                            <div class="hero-metric">
+                                                <strong>{{ novels.length }}</strong>
+                                                <span>作品</span>
+                                            </div>
+                                            <div class="hero-metric">
+                                                <strong>{{ currentNovel ? chapters.length : '-' }}</strong>
+                                                <span>当前章节</span>
+                                            </div>
+                                            <div class="hero-metric">
+                                                <strong>{{ isCloudServer ? '云端' : '本地' }}</strong>
+                                                <span>服务</span>
+                                            </div>
+                                        </div>
+                                        <div class="hero-flow">
+                                            <div><span>1</span> 设定题材</div>
+                                            <div><span>2</span> 生成大纲与角色</div>
+                                            <div><span>3</span> 续写章节并导出</div>
+                                        </div>
                                     </div>
                                 </div>
 
+                                <div class="dashboard-grid">
+                                    <div class="dashboard-card feature-card">
+                                        <span class="feature-icon">纲</span>
+                                        <h3>结构化生成</h3>
+                                        <p>围绕全局设定、大纲、角色和章节逐步推进，减少创作断层。</p>
+                                    </div>
+                                    <div class="dashboard-card feature-card">
+                                        <span class="feature-icon">续</span>
+                                        <h3>持续续写</h3>
+                                        <p>支持单章续写和自动续写，便于快速扩展长篇内容。</p>
+                                    </div>
+                                    <div class="dashboard-card feature-card">
+                                        <span class="feature-icon">监</span>
+                                        <h3>过程可追踪</h3>
+                                        <p>生成进度、失败次数和运行日志集中展示，问题更容易定位。</p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section v-show="activeView === 'home'" class="page">
                                 <div class="content-grid">
-                                    <el-card v-if="!currentNovel" shadow="hover" class="panel">
+                                    <el-card v-if="!currentNovel" shadow="hover" class="panel library-panel">
                                         <template #header>
-                                            <div class="panel-header">
-                                                <span class="panel-title">作品库</span>
-                                                <el-badge :value="novels.length" type="primary" />
+                                            <div class="panel-header panel-header-library">
+                                                <div class="library-title-block">
+                                                    <div class="library-icon">书</div>
+                                                    <div class="panel-titleline">
+                                                        <span class="panel-title">作品库</span>
+                                                        <span class="panel-subtitle">共 {{ novels.length }} 部作品</span>
+                                                    </div>
+                                                </div>
+                                                <div class="library-actions">
+                                                    <el-button size="small" @click="fetchNovels" :loading="loading.novels">刷新</el-button>
+                                                    <el-button type="primary" size="small" @click="openCreateDialog">+ 新建作品</el-button>
+                                                </div>
                                             </div>
                                         </template>
                                         <div class="table-wrap">
@@ -97,7 +151,7 @@
                                                 @row-click="selectNovel"
                                                 highlight-current-row
                                                 v-loading="loading.novels"
-                                                empty-text="暂无作品，点击右上角新建"
+                                                empty-text="暂无作品，点击右上角新建作品"
                                                 :header-cell-style="{ textAlign: 'center' }"
                                                 :cell-style="{ textAlign: 'center' }"
                                                 stripe>
@@ -120,28 +174,33 @@
                                     <el-card v-else shadow="hover" class="panel panel-workbench">
                                         <template #header>
                                             <div class="panel-header panel-header-vertical">
-                                                <div>
+                                                <div class="workbench-title-block">
                                                     <div class="panel-title">{{ currentNovel.title }}</div>
                                                     <div class="panel-subtitle">已生成 {{ chapters.length }} 个章节 · 支持续写、审阅与导出</div>
-                                                    <div class="novel-setting" v-if="currentNovel.generationSetting">
-                                                        <span>全局设定：</span>{{ currentNovel.generationSetting }}
-                                                    </div>
                                                 </div>
-                                                <div class="action-bar">
-                                                    <el-button @click="backToNovelList">← 返回作品库</el-button>
-                                                    <el-button size="small" @click="refreshGenerationState" :loading="loading.progress">刷新进度</el-button>
-                                                    <button type="button" :class="['stage-pill', workbenchMode === 'outline' ? 'active' : '', generationProgress.outlineReady ? 'done' : 'pending']" @click="setWorkbenchMode(workbenchMode === 'outline' ? 'chapters' : 'outline')">
-                                                        大纲 {{ generationProgress.outlineReady ? '已完成' : '生成中' }}
-                                                    </button>
-                                                    <button type="button" :class="['stage-pill', workbenchMode === 'characters' ? 'active' : '', generationProgress.charactersReady ? 'done' : 'pending']" @click="setWorkbenchMode(workbenchMode === 'characters' ? 'chapters' : 'characters')">
-                                                        角色 {{ generationProgress.charactersReady ? '已完成' : '生成中' }}
-                                                    </button>
-                                                    <span class="stage-pill done">章节 {{ generationProgress.chapterCount || chapters.length }} 章</span>
-                                                    <span v-if="generationProgress.failedCount" class="stage-pill danger">失败 {{ generationProgress.failedCount }}</span>
-                                                    <el-button type="success" @click="continueNovel" :loading="actions.continuing">续写章节</el-button>
-                                                    <el-button type="primary" plain @click="autoContinueNovel" :loading="actions.autoContinuing">自动续写</el-button>
-                                                    <el-button type="warning" @click="exportNovel" :disabled="chapters.length === 0" :loading="actions.exporting">导出 TXT</el-button>
-                                                    <el-button @click="refreshChapters" :loading="actions.refreshing">刷新</el-button>
+                                                <div class="workbench-toolbar">
+                                                    <div class="toolbar-row">
+                                                        <el-button class="toolbar-pill" @click="backToNovelList">← 作品库</el-button>
+                                                        <el-button class="toolbar-pill" @click="refreshGenerationState" :loading="loading.progress">刷新进度</el-button>
+                                                        <button type="button" class="toolbar-pill" @click="openStoryInfoDialog()">
+                                                            创作信息
+                                                        </button>
+                                                        <button type="button" class="toolbar-pill" @click="openPipelineDialog">
+                                                            流水线 {{ currentPipelineLabel }}
+                                                        </button>
+                                                        <span v-if="writingMonitorToolbarText" :class="['toolbar-pill', 'static', writingMonitorToneClass]">{{ writingMonitorToolbarText }}</span>
+                                                        <span class="toolbar-pill done static">章节 {{ generationProgress.chapterCount || chapters.length }} 章</span>
+                                                        <button v-if="generationProgress.failedCount" type="button" class="toolbar-pill danger" title="点击查看失败日志" @click="openFailureLogs">失败 {{ generationProgress.failedCount }}</button>
+                                                        <el-button class="toolbar-pill" @click="openContinueDialog" :loading="actions.continuing || actions.autoContinuing">续写设置</el-button>
+                                                        <el-button class="toolbar-pill" @click="openRangeRegenerateDialog" :disabled="chapters.length === 0" :loading="actions.rangeRegenerating">区间重生</el-button>
+                                                        <el-button class="toolbar-pill" @click="copyCurrentChapter" :disabled="!currentChapter || !currentChapter.content">复制本章</el-button>
+                                                        <el-button class="toolbar-pill" @click="exportNovel" :disabled="chapters.length === 0" :loading="actions.exporting">导出 TXT</el-button>
+                                                        <el-button class="toolbar-pill" @click="openQualityCenterDialog()">质量中心</el-button>
+                                                        <button type="button" :class="['toolbar-pill', compactDialogMode ? 'active' : '']" @click="toggleCompactDialogMode">
+                                                            紧凑模式 {{ compactDialogMode ? '开' : '关' }}
+                                                        </button>
+                                                        <el-button class="toolbar-pill" @click="refreshChapters" :loading="actions.refreshing">刷新章节</el-button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </template>
@@ -155,6 +214,20 @@
                                                             <span class="chapter-number">{{ c.chapterNumber }}</span>
                                                             <span class="chapter-title">{{ c.title }}</span>
                                                             <el-tag v-if="c.generationSetting" size="small" type="warning" effect="plain">设定</el-tag>
+                                                            <el-tag
+                                                                v-if="isChapterRegenerating(c)"
+                                                                size="small"
+                                                                :type="getChapterWriteTagType(c)"
+                                                                effect="light"
+                                                            >{{ getChapterWriteStatusText(c) }}</el-tag>
+                                                            <el-button
+                                                                v-else
+                                                                class="chapter-regenerate-btn"
+                                                                link
+                                                                type="primary"
+                                                                size="small"
+                                                                @click.stop="openRegenerateDialog(c)"
+                                                            >重生成</el-button>
                                                         </div>
                                                     </el-menu-item>
                                                 </el-menu>
@@ -162,12 +235,78 @@
 
                                             <div class="chapter-resizer" @mousedown="startResizeChapterList" title="拖拽调整章节栏宽度"></div>
 
-                                            <div class="reader">
+                                            <div class="reader" ref="readerRef">
                                                 <div v-if="currentChapter" class="chapter-content" ref="contentRef">
                                                     <h3>{{ currentChapter.title }}</h3>
-                                                    <div class="chapter-setting" v-if="currentChapter.generationSetting">
-                                                        <strong>本章生成设定：</strong>
-                                                        <p>{{ currentChapter.generationSetting }}</p>
+                                                    <div v-if="currentChapterRewriteStatus" class="chapter-rewrite-hint">
+                                                        当前章节正在重写（{{ currentChapterRewriteStatus }}）<template v-if="chapterRewriteProgressText">，{{ chapterRewriteProgressText }}</template>，内容会在任务完成后自动更新
+                                                    </div>
+                                                    <div
+                                                        v-if="currentChapter.generationSetting || currentChapterSidecar"
+                                                        class="chapter-meta-shell"
+                                                    >
+                                                        <div class="chapter-meta-row">
+                                                            <button
+                                                                v-if="currentChapter.generationSetting"
+                                                                type="button"
+                                                                class="chapter-meta-chip"
+                                                                :class="{ 'is-expanded': chapterSettingExpanded }"
+                                                                @click="toggleChapterMetaSetting"
+                                                            >
+                                                                <span class="chapter-meta-chip-main">
+                                                                    <span class="chapter-meta-chip-label">本章生成设定</span>
+                                                                    <span
+                                                                        v-if="!chapterSettingExpanded && chapterSettingPreview"
+                                                                        class="chapter-meta-chip-preview"
+                                                                    >{{ chapterSettingPreview }}</span>
+                                                                </span>
+                                                                <span class="chapter-meta-chip-tail">
+                                                                    <span class="chapter-meta-chip-action">{{ chapterSettingExpanded ? '收起' : '展开' }}</span>
+                                                                    <span :class="['chapter-meta-chip-caret', chapterSettingExpanded ? 'expanded' : '']">⌄</span>
+                                                                </span>
+                                                            </button>
+                                                            <button
+                                                                v-if="currentChapterSidecar"
+                                                                type="button"
+                                                                class="chapter-meta-chip"
+                                                                :class="{ 'is-expanded': chapterSidecarExpanded }"
+                                                                @click="toggleChapterMetaSidecar"
+                                                            >
+                                                                <span class="chapter-meta-chip-main">
+                                                                    <span class="chapter-meta-chip-label">章节结构化视图</span>
+                                                                    <span
+                                                                        v-if="!chapterSidecarExpanded && chapterSidecarPreview"
+                                                                        class="chapter-meta-chip-preview"
+                                                                    >{{ chapterSidecarPreview }}</span>
+                                                                </span>
+                                                                <span class="chapter-meta-chip-tail">
+                                                                    <span class="chapter-meta-chip-action">{{ chapterSidecarExpanded ? '收起' : '展开' }}</span>
+                                                                    <span :class="['chapter-meta-chip-caret', chapterSidecarExpanded ? 'expanded' : '']">⌄</span>
+                                                                </span>
+                                                            </button>
+                                                        </div>
+                                                        <template v-if="currentChapter.generationSetting">
+                                                            <div v-show="chapterSettingExpanded" class="chapter-meta-panel">
+                                                                <p class="chapter-meta-panel-prose">{{ currentChapter.generationSetting }}</p>
+                                                            </div>
+                                                        </template>
+                                                        <template v-if="currentChapterSidecar">
+                                                            <div v-show="chapterSidecarExpanded" class="chapter-meta-panel">
+                                                                <div class="chapter-meta-blocks">
+                                                                    <div class="chapter-meta-block">
+                                                                        <strong>关键事实</strong>
+                                                                        <ul v-if="currentChapterSidecarFacts.length">
+                                                                            <li v-for="(fact, idx) in currentChapterSidecarFacts" :key="idx">{{ fact }}</li>
+                                                                        </ul>
+                                                                        <p v-else class="chapter-meta-muted">暂无关键事实</p>
+                                                                    </div>
+                                                                    <div class="chapter-meta-block">
+                                                                        <strong>衔接锚点</strong>
+                                                                        <p class="chapter-meta-panel-prose">{{ currentChapterSidecar.continuityAnchor || '暂无衔接锚点' }}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
                                                     </div>
                                                     <p>{{ currentChapter.content }}</p>
                                                 </div>
@@ -187,14 +326,21 @@
                                                     <h3>大纲与全局设定</h3>
                                                     <el-button size="small" @click="setWorkbenchMode('chapters')">返回章节</el-button>
                                                 </div>
-                                                <div v-if="outlineInfo.ready || outlineInfo.description || outlineInfo.generationSetting" class="stage-detail-content">
-                                                    <section v-if="outlineInfo.generationSetting">
-                                                        <h4>全局设定</h4>
-                                                        <p>{{ outlineInfo.generationSetting }}</p>
-                                                    </section>
+                                                <div v-if="outlineInfo.ready || outlineInfo.description" class="stage-detail-content">
                                                     <section v-if="outlineInfo.description">
                                                         <h4>小说大纲</h4>
-                                                        <p>{{ outlineInfo.description }}</p>
+                                                        <div v-if="outlineToc.length" class="outline-toc">
+                                                            <span class="outline-toc-title">目录导航</span>
+                                                            <button
+                                                                v-for="item in outlineToc"
+                                                                :key="item.id"
+                                                                type="button"
+                                                                :class="['outline-toc-item', 'level-' + item.level]"
+                                                                @click="scrollToOutlineHeading(item.id)">
+                                                                {{ item.text }}
+                                                            </button>
+                                                        </div>
+                                                        <div class="outline-rich" v-html="formatOutlineHtml(outlineInfo.description)"></div>
                                                     </section>
                                                 </div>
                                                 <el-empty v-else description="大纲仍在生成中，请稍后刷新" :image-size="100" />
@@ -210,7 +356,13 @@
                                                 <div v-if="characters.length" class="character-grid">
                                                     <div v-for="(character, index) in characters" :key="character.id || index" class="character-card">
                                                         <h4>{{ character.name || character.characterName || '角色' + (index + 1) }}</h4>
-                                                        <p>{{ formatCharacter(character) }}</p>
+                                                        <template v-if="getCharacterSections(character).length">
+                                                            <div v-for="(section, sectionIdx) in getCharacterSections(character)" :key="section.label + sectionIdx" class="character-section">
+                                                                <strong>{{ section.label }}</strong>
+                                                                <p>{{ section.content }}</p>
+                                                            </div>
+                                                        </template>
+                                                        <p v-else>{{ formatCharacter(character) }}</p>
                                                     </div>
                                                 </div>
                                                 <el-empty v-else description="角色设定仍在生成中，请稍后刷新" :image-size="100" />
@@ -238,14 +390,33 @@
                                         <el-button size="small" @click="filterLog('success')" :type="logFilter === 'success' ? 'primary' : ''">成功</el-button>
                                         <el-button size="small" @click="filterLog('warning')" :type="logFilter === 'warning' ? 'primary' : ''">警告</el-button>
                                         <el-button size="small" @click="filterLog('error')" :type="logFilter === 'error' ? 'primary' : ''">错误</el-button>
+                                        <el-button size="small" @click="filterLog('repair')" :type="logFilter === 'repair' ? 'primary' : ''">角色修复</el-button>
                                     </el-button-group>
                                 </div>
 
                                 <div class="log-panel" ref="logContainerRef">
-                                    <div v-for="(log, index) in filteredLogs" :key="index" class="log-entry">
+                                    <div v-for="(log, index) in filteredLogs" :key="log.id || index" class="log-entry">
                                         <span class="log-time">{{ log.time }}</span>
                                         <span :class="['log-badge', 'log-' + log.type]">[{{ log.type.toUpperCase() }}]</span>
-                                        <span class="log-message">{{ log.message }}</span>
+                                        <span
+                                            v-if="!isExpandableLog(log.message)"
+                                            class="log-message"
+                                        >{{ log.message }}</span>
+                                        <button
+                                            v-else
+                                            type="button"
+                                            :class="['log-message', 'log-message-toggle', !isLogExpanded(log) ? 'collapsed' : '']"
+                                            :title="isLogExpanded(log) ? '点击收起' : '点击展开完整日志'"
+                                            @click="toggleLogExpanded(log)"
+                                        >{{ log.message }}</button>
+                                        <el-button
+                                            v-if="isExpandableLog(log.message)"
+                                            link
+                                            size="small"
+                                            class="log-expand-btn"
+                                            @click="toggleLogExpanded(log)">
+                                            {{ isLogExpanded(log) ? '收起' : '展开' }}
+                                        </el-button>
                                     </div>
                                     <div v-if="filteredLogs.length === 0" class="log-empty">暂无日志记录</div>
                                 </div>
@@ -266,6 +437,13 @@
                                     <template #prefix>💡</template>
                                 </el-input>
                             </el-form-item>
+                            <el-form-item label="文风" label-width="100px">
+                                <el-select v-model="form.style" placeholder="默认爽文（不选也可以）" clearable>
+                                    <el-option label="默认爽文" value="" />
+                                    <el-option label="轻小说" value="light" />
+                                    <el-option label="日常向" value="slice" />
+                                </el-select>
+                            </el-form-item>
                             <el-form-item label="全局设定" label-width="100px">
                                 <el-input
                                     v-model="form.generationSetting"
@@ -285,8 +463,262 @@
                         </template>
                     </el-dialog>
 
-                    <el-dialog v-model="continueDialogVisible" title="续写章节" width="560px" :close-on-click-modal="false">
+                    <el-dialog v-model="storyInfoDialogVisible" title="创作信息" width="860px" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-tabs v-model="storyInfoTab" stretch>
+                            <el-tab-pane label="全局设定" name="globalSetting">
+                                <div class="setting-dialog-content" v-if="currentNovelSettingText">
+                                    {{ currentNovelSettingText }}
+                                </div>
+                                <el-empty v-else description="当前作品暂无全局设定" :image-size="90" />
+                            </el-tab-pane>
+                            <el-tab-pane label="大纲" name="outline">
+                                <div v-if="outlineInfo.ready || outlineInfo.description" class="stage-detail-content">
+                                    <section v-if="outlineInfo.description">
+                                        <h4>小说大纲</h4>
+                                        <div v-if="outlineToc.length" class="outline-toc">
+                                            <span class="outline-toc-title">目录导航</span>
+                                            <button
+                                                v-for="item in outlineToc"
+                                                :key="item.id"
+                                                type="button"
+                                                :class="['outline-toc-item', 'level-' + item.level]"
+                                                @click="scrollToOutlineHeading(item.id)">
+                                                {{ item.text }}
+                                            </button>
+                                        </div>
+                                        <div class="outline-rich" v-html="formatOutlineHtml(outlineInfo.description)"></div>
+                                    </section>
+                                </div>
+                                <el-empty v-else description="大纲仍在生成中，请稍后刷新进度" :image-size="100" />
+                            </el-tab-pane>
+                            <el-tab-pane label="角色" name="characters">
+                                <div class="failure-log-toolbar character-repair-toolbar">
+                                    <span>角色总数：{{ characters.length }}</span>
+                                    <div class="character-repair-controls">
+                                        <el-select v-model="characterRepairForm.rebuildMode" size="small" style="width: 120px;">
+                                            <el-option label="全量重建" value="all" />
+                                            <el-option label="部分重建" value="partial" />
+                                        </el-select>
+                                        <el-input
+                                            v-if="characterRepairForm.rebuildMode === 'partial'"
+                                            v-model="characterRepairForm.targetCharacterNamesInput"
+                                            size="small"
+                                            style="width: 220px;"
+                                            placeholder="目标角色名，逗号分隔" />
+                                        <el-input
+                                            v-model="characterRepairForm.characterContextHint"
+                                            size="small"
+                                            style="width: 260px;"
+                                            placeholder="角色上下文提示（推荐）" />
+                                        <el-input
+                                            v-model="characterRepairForm.extraHint"
+                                            size="small"
+                                            style="width: 260px;"
+                                            placeholder="额外修复要求（可选）" />
+                                        <el-checkbox v-model="characterRepairForceRegenerate">强制重建</el-checkbox>
+                                        <el-button size="small" type="primary" @click="repairCharacters" :loading="actions.repairingCharacters">修复角色</el-button>
+                                    </div>
+                                </div>
+                                <div v-if="characters.length" class="character-grid">
+                                    <div v-for="(character, index) in characters" :key="character.id || index" class="character-card">
+                                        <h4>{{ character.name || character.characterName || '角色' + (index + 1) }}</h4>
+                                        <template v-if="getCharacterSections(character).length">
+                                            <div v-for="(section, sectionIdx) in getCharacterSections(character)" :key="section.label + sectionIdx" class="character-section">
+                                                <strong>{{ section.label }}</strong>
+                                                <p>{{ section.content }}</p>
+                                            </div>
+                                        </template>
+                                        <p v-else>{{ formatCharacter(character) }}</p>
+                                    </div>
+                                </div>
+                                <el-empty v-else description="暂无角色，可尝试点击“修复角色”自动补全" :image-size="100" />
+                            </el-tab-pane>
+                        </el-tabs>
+                    </el-dialog>
+
+                    <el-dialog v-model="pipelineDialogVisible" title="流水线设置" width="520px" :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-form label-width="100px">
+                            <el-form-item label="当前流水线">
+                                <el-tag type="info">{{ currentPipelineLabel }}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="切换到">
+                                <el-radio-group v-model="pipelineForm.pipeline">
+                                    <el-radio label="power_fantasy">默认爽文</el-radio>
+                                    <el-radio label="light">轻小说</el-radio>
+                                    <el-radio label="slice">日常向</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-alert title="仅影响后续新生成章节，不修改历史章节内容" type="info" :closable="false" show-icon />
+                        </el-form>
+                        <template #footer>
+                            <div class="dialog-footer">
+                                <el-button @click="pipelineDialogVisible = false">取消</el-button>
+                                <el-button type="primary" @click="submitPipelineUpdate" :loading="actions.pipelineUpdating">保存流水线</el-button>
+                            </div>
+                        </template>
+                    </el-dialog>
+
+                    <el-dialog v-model="failureLogDialogVisible" title="失败日志" width="720px">
+                        <div class="failure-log-toolbar">
+                            <span>当前失败次数：{{ generationProgress.failedCount || 0 }}</span>
+                            <el-button size="small" @click="refreshFailureLogs" :loading="loading.failureLogs">刷新日志</el-button>
+                        </div>
+                        <div class="failure-log-panel" v-loading="loading.failureLogs">
+                            <div v-for="(log, index) in failureLogs" :key="index" class="failure-log-entry">
+                                <div class="failure-log-meta">
+                                    <span>{{ getGenerationLogTime(log) }}</span>
+                                    <el-tag size="small" type="danger" effect="dark">{{ getGenerationLogStatus(log) }}</el-tag>
+                                </div>
+                                <pre>{{ formatGenerationLog(log) }}</pre>
+                            </div>
+                            <el-empty v-if="failureLogs.length === 0 && !loading.failureLogs" description="暂无失败日志" :image-size="90" />
+                        </div>
+                    </el-dialog>
+
+                    <el-dialog v-model="qualityCenterDialogVisible" title="质量中心" width="860px" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-tabs v-model="qualityTab" stretch>
+                            <el-tab-pane label="导出体检" name="exportHealth">
+                                <div v-loading="loading.exportHealth">
+                                    <el-empty v-if="!exportHealthResult" description="暂无体检数据" :image-size="90" />
+                                    <template v-else>
+                                        <el-alert :title="exportHealthResult.healthy ? '体检通过，可安全导出' : '体检未通过，建议先修复问题'" :type="exportHealthResult.healthy ? 'success' : 'warning'" :closable="false" show-icon />
+                                        <el-divider />
+                                        <h4>问题列表</h4>
+                                        <el-empty v-if="!exportHealthResult.issues.length" description="未发现问题" :image-size="80" />
+                                        <el-scrollbar v-else max-height="280px">
+                                            <ul>
+                                                <li v-for="(issue, idx) in exportHealthResult.issues" :key="idx">{{ issue }}</li>
+                                            </ul>
+                                        </el-scrollbar>
+                                    </template>
+                                </div>
+                            </el-tab-pane>
+                            <el-tab-pane label="一致性告警" name="consistencyAlerts">
+                                <div v-loading="loading.consistencyAlerts">
+                                    <el-empty v-if="consistencyAlerts.length === 0" description="暂无一致性告警" :image-size="90" />
+                                    <el-table v-else :data="consistencyAlerts" stripe max-height="420">
+                                        <el-table-column label="章节" width="100">
+                                            <template #default="{ row }">{{ row.chapterNumber || row.chapter || '-' }}</template>
+                                        </el-table-column>
+                                        <el-table-column label="类型" width="160">
+                                            <template #default="{ row }">{{ row.type || row.alertType || row.level || '告警' }}</template>
+                                        </el-table-column>
+                                        <el-table-column label="内容" min-width="360">
+                                            <template #default="{ row }">{{ row.message || row.content || row.description || JSON.stringify(row) }}</template>
+                                        </el-table-column>
+                                    </el-table>
+                                </div>
+                            </el-tab-pane>
+                            <el-tab-pane label="章节事实" name="chapterFacts">
+                                <div v-loading="loading.chapterFacts">
+                                    <el-empty v-if="chapterFacts.length === 0" description="暂无章节事实数据" :image-size="90" />
+                                    <el-scrollbar v-else max-height="460px">
+                                        <article v-for="(fact, idx) in chapterFacts" :key="fact.id || idx" class="failure-log-entry">
+                                            <div class="failure-log-meta">
+                                                <strong>第 {{ fact.chapterNumber || fact.chapter || '-' }} 章</strong>
+                                                <span>{{ fact.updatedAt || fact.createdAt || fact.time || '' }}</span>
+                                            </div>
+                                            <pre>{{ fact.summary || fact.facts || fact.content || JSON.stringify(fact, null, 2) }}</pre>
+                                        </article>
+                                    </el-scrollbar>
+                                </div>
+                            </el-tab-pane>
+                            <el-tab-pane label="主线快照" name="plotSnapshots">
+                                <div v-loading="loading.plotSnapshots">
+                                    <el-empty v-if="plotSnapshots.length === 0" description="暂无阶段主线快照" :image-size="90" />
+                                    <el-scrollbar v-else max-height="460px">
+                                        <article v-for="(snapshot, idx) in plotSnapshots" :key="snapshot.id || idx" class="failure-log-entry">
+                                            <div class="failure-log-meta">
+                                                <strong>阶段 {{ snapshot.stage || snapshot.round || idx + 1 }}</strong>
+                                                <span>章节范围：{{ snapshot.chapterRange || snapshot.range || ((snapshot.startChapter || '-') + ' - ' + (snapshot.endChapter || '-')) }}</span>
+                                            </div>
+                                            <pre>{{ snapshot.summary || snapshot.mainline || snapshot.content || JSON.stringify(snapshot, null, 2) }}</pre>
+                                        </article>
+                                    </el-scrollbar>
+                                </div>
+                            </el-tab-pane>
+                        </el-tabs>
+                        <template #footer>
+                            <div class="dialog-footer">
+                                <el-button @click="qualityCenterDialogVisible = false">关闭</el-button>
+                                <el-button
+                                    type="primary"
+                                    @click="refreshQualityTab"
+                                    :loading="(qualityTab === 'exportHealth' && loading.exportHealth) || (qualityTab === 'consistencyAlerts' && loading.consistencyAlerts) || (qualityTab === 'chapterFacts' && loading.chapterFacts) || (qualityTab === 'plotSnapshots' && loading.plotSnapshots)">
+                                    刷新当前标签
+                                </el-button>
+                            </div>
+                        </template>
+                    </el-dialog>
+
+                    <el-dialog v-model="regenerateDialogVisible" :title="regenerateDialogTitle" width="560px" :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-form :model="regenerateForm" @submit.prevent="submitRegenerateChapter">
+                            <el-form-item label="新设定" label-width="100px">
+                                <el-input
+                                    v-model="regenerateForm.generationSetting"
+                                    type="textarea"
+                                    :rows="6"
+                                    maxlength="1000"
+                                    show-word-limit
+                                    placeholder="可选。例如：本章要突出主角的智谋，增加反转。留空则按原设定重新生成。" />
+                            </el-form-item>
+                            <el-alert title="重新生成会启动后端任务，请稍后手动点击刷新进度查看结果" type="warning" :closable="false" show-icon />
+                        </el-form>
+                        <template #footer>
+                            <div class="dialog-footer">
+                                <el-button @click="regenerateDialogVisible = false">取消</el-button>
+                                <el-button type="primary" @click="submitRegenerateChapter" :loading="actions.regenerating">提交重生成</el-button>
+                            </div>
+                        </template>
+                    </el-dialog>
+
+                    <el-dialog v-model="rangeRegenerateDialogVisible" title="区间重生" width="560px" :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-form :model="rangeRegenerateForm" @submit.prevent="submitRangeRegenerate">
+                            <el-alert
+                                v-if="regenerationTaskStatus.hasRunningTask"
+                                :title="'当前有区间重生任务运行中：' + (regenerationTaskStatus.runningRanges.join(', ') || '未知区间')"
+                                type="warning"
+                                :closable="false"
+                                show-icon />
+                            <el-form-item label="起始章节" label-width="100px">
+                                <el-input-number v-model="rangeRegenerateForm.startChapter" :min="1" :precision="0" :step="1" controls-position="right" style="width: 100%;" />
+                            </el-form-item>
+                            <el-form-item label="结束章节" label-width="100px">
+                                <el-input-number v-model="rangeRegenerateForm.endChapter" :min="1" :precision="0" :step="1" controls-position="right" style="width: 100%;" />
+                            </el-form-item>
+                            <el-form-item label="附加设定" label-width="100px">
+                                <el-input
+                                    v-model="rangeRegenerateForm.generationSetting"
+                                    type="textarea"
+                                    :rows="4"
+                                    maxlength="1000"
+                                    show-word-limit
+                                    placeholder="可选。本次区间重生的额外生成要求。" />
+                            </el-form-item>
+                            <el-alert title="后端支持起止章自动归一化；若区间与正在重生任务重叠会被拒绝" type="warning" :closable="false" show-icon />
+                        </el-form>
+                        <template #footer>
+                            <div class="dialog-footer">
+                                <el-button @click="rangeRegenerateDialogVisible = false">取消</el-button>
+                                <el-button type="primary" @click="submitRangeRegenerate" :loading="actions.rangeRegenerating || loading.regenerationTasks" :disabled="regenerationTaskStatus.hasRunningTask">提交区间重生</el-button>
+                            </div>
+                        </template>
+                    </el-dialog>
+
+                    <el-dialog v-model="continueDialogVisible" title="续写设置" width="560px" :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
                         <el-form :model="continueForm" @submit.prevent="submitContinueNovel">
+                            <el-form-item label="续写模式" label-width="100px">
+                                <el-radio-group v-model="continueForm.mode">
+                                    <el-radio label="continue">单章续写</el-radio>
+                                    <el-radio label="auto">自动续写</el-radio>
+                                </el-radio-group>
+                            </el-form-item>
+                            <el-form-item v-if="continueForm.mode === 'continue'" label="章节号" label-width="100px">
+                                <el-input-number v-model="continueForm.chapterNumber" :min="1" :precision="0" :step="1" controls-position="right" placeholder="留空=自动下一章" style="width: 100%;" />
+                            </el-form-item>
+                            <el-form-item v-else label="目标章数" label-width="100px">
+                                <el-input-number v-model="continueForm.targetChapterCount" :min="1" :precision="0" :step="1" controls-position="right" placeholder="留空=后端默认值" style="width: 100%;" />
+                            </el-form-item>
                             <el-form-item label="续写设定" label-width="100px">
                                 <el-input
                                     v-model="continueForm.generationSetting"
@@ -296,12 +728,12 @@
                                     show-word-limit
                                     placeholder="例如：这一章重点写主角第一次失控，反派暂时占上风，结尾留下妹妹的线索。" />
                             </el-form-item>
-                            <el-alert title="续写设定可选；留空时后端会按当前小说内容自动续写下一章" type="info" :closable="false" show-icon />
+                            <el-alert :title="continueForm.mode === 'auto' ? '自动续写会持续写到目标章数；目标可留空使用后端默认值' : '单章续写支持指定章节号；留空时后端会自动续写下一章'" type="info" :closable="false" show-icon />
                         </el-form>
                         <template #footer>
                             <div class="dialog-footer">
                                 <el-button @click="continueDialogVisible = false">取消</el-button>
-                                <el-button type="primary" @click="submitContinueNovel" :loading="actions.continuing">提交续写</el-button>
+                                <el-button type="primary" @click="submitContinueNovel" :loading="continueForm.mode === 'auto' ? actions.autoContinuing : actions.continuing">提交续写</el-button>
                             </div>
                         </template>
                     </el-dialog>
@@ -325,31 +757,78 @@
                 const currentNovel = ref(null);
                 const currentChapter = ref(null);
                 const dialogVisible = ref(false);
-                const form = ref({ topic: '', generationSetting: '' });
+                const form = ref({ topic: '', generationSetting: '', style: '' });
                 const continueDialogVisible = ref(false);
-                const continueForm = ref({ generationSetting: '' });
+                const regenerateDialogVisible = ref(false);
+                const failureLogDialogVisible = ref(false);
+                const qualityCenterDialogVisible = ref(false);
+                const qualityTab = ref('exportHealth');
+                const storyInfoDialogVisible = ref(false);
+                const storyInfoTab = ref('globalSetting');
+                const pipelineDialogVisible = ref(false);
+                const rangeRegenerateDialogVisible = ref(false);
+                const continueForm = ref({ mode: 'continue', chapterNumber: null, targetChapterCount: null, generationSetting: '' });
+                const regenerateForm = ref({ chapter: null, generationSetting: '' });
+                const rangeRegenerateForm = ref({ startChapter: null, endChapter: null, generationSetting: '' });
+                const pipelineForm = ref({ pipeline: 'power_fantasy' });
+                const characterRepairForceRegenerate = ref(false);
+                const characterRepairForm = ref({
+                    rebuildMode: 'all',
+                    targetCharacterNamesInput: '',
+                    characterContextHint: '',
+                    extraHint: ''
+                });
                 const contentRef = ref(null);
+                const readerRef = ref(null);
                 const logContainerRef = ref(null);
-                const activeView = ref('home');
+                const activeView = ref('dashboard');
                 const logFilter = ref('all');
                 const logs = ref([]);
+                const expandedLogIds = ref(new Set());
                 const sidebarCollapsed = ref(true);
-                const loading = reactive({ novels: false, chapters: false, progress: false });
-                const actions = reactive({ creating: false, continuing: false, autoContinuing: false, exporting: false, refreshing: false });
+                const loading = reactive({ novels: false, chapters: false, progress: false, failureLogs: false, exportHealth: false, consistencyAlerts: false, chapterFacts: false, plotSnapshots: false, regenerationTasks: false });
+                const actions = reactive({ creating: false, continuing: false, autoContinuing: false, regenerating: false, rangeRegenerating: false, pipelineUpdating: false, repairingCharacters: false, exporting: false, refreshing: false });
                 const testing = ref(false);
                 const isCloudServer = ref(false);
                 const connectionStatus = ref({ type: 'info', text: '未连接' });
+                const compactDialogMode = ref(false);
                 const generationProgress = ref({ outlineReady: false, charactersReady: false, chapterCount: 0, failedCount: 0, status: '未开始' });
                 const outlineInfo = ref({ ready: false, description: '', generationSetting: '' });
                 const characters = ref([]);
                 const generationLogs = ref([]);
+                const exportHealthResult = ref(null);
+                const consistencyAlerts = ref([]);
+                const chapterFacts = ref([]);
+                const plotSnapshots = ref([]);
+                const chapterSidecar = ref([]);
+                const currentPipeline = ref('power_fantasy');
+                const regenerationTaskStatus = ref({ novelId: null, hasRunningTask: false, runningRanges: [] });
+                const regenerationChapterStatusMap = ref({});
+                const writingMonitorStatus = ref({
+                    novelId: null,
+                    writePhase: '',
+                    writeCursorChapter: null,
+                    writeRangeFrom: null,
+                    writeRangeTo: null,
+                    activeTaskId: null,
+                    activeTaskStatus: '',
+                    activeTaskCurrentChapter: null,
+                    isBusyPersisted: false,
+                    volatileGuardRanges: [],
+                    chaptersWithActiveWriteMarks: []
+                });
+                const writingMonitorChapterStatusMap = ref({});
                 const workbenchMode = ref('chapters');
                 const chapterListWidth = ref(220);
+                const chapterSettingExpanded = ref(false);
+                const chapterSidecarExpanded = ref(false);
 
                 let axiosInstance = createAxiosInstance();
                 let stopResizeChapterList = null;
                 let progressTimer = null;
+                let regenerationTaskTimer = null;
                 let lastObservedChapterCount = 0;
+                let logSequence = 0;
 
                 function createAxiosInstance() {
                     const instance = axios.create({
@@ -357,6 +836,18 @@
                         timeout: CONFIG.REQUEST_TIMEOUT,
                         headers: { 'Content-Type': 'application/json' }
                     });
+                    const validateApiResult = (data) => {
+                        if (!data || typeof data !== 'object') return;
+                        const hasStatus = Object.prototype.hasOwnProperty.call(data, 'status');
+                        const hasCode = Object.prototype.hasOwnProperty.call(data, 'code');
+                        if (!hasStatus && !hasCode) return;
+                        const statusOk = !hasStatus || String(data.status).toLowerCase() === 'success';
+                        const codeOk = !hasCode || String(data.code).toUpperCase() === 'OK';
+                        if (statusOk && codeOk) return;
+                        const err = new Error(data.message || `接口返回失败: ${data.code || data.status || 'UNKNOWN'}`);
+                        err.response = { data };
+                        throw err;
+                    };
 
                     instance.interceptors.request.use(config => {
                         config.metadata = { startTime: Date.now() };
@@ -381,8 +872,9 @@
                         addLog(`   数据大小: ${JSON.stringify(response.data).length} 字节`, 'success');
                         addLog(`   数据类型: ${Array.isArray(response.data) ? 'Array' : typeof response.data}`, 'success');
                         if (response.data) {
-                            addLog(`   数据预览: ${JSON.stringify(response.data).substring(0, 100)}...`, 'info');
+                            addLog(`   数据预览: ${JSON.stringify(response.data)}`, 'info');
                         }
+                        validateApiResult(response.data);
                         return response;
                     }, error => {
                         const duration = error.config?.metadata ? Date.now() - error.config.metadata.startTime : 0;
@@ -412,8 +904,15 @@
 
                 function addLog(message, type = 'info') {
                     const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
-                    logs.value.push({ time, type, message });
-                    if (logs.value.length > 200) logs.value.shift();
+                    logs.value.push({ id: ++logSequence, time, type, message: String(message || '') });
+                    if (logs.value.length > 200) {
+                        const removed = logs.value.shift();
+                        if (removed?.id) {
+                            const next = new Set(expandedLogIds.value);
+                            next.delete(removed.id);
+                            expandedLogIds.value = next;
+                        }
+                    }
                     if (activeView.value === 'log' && logContainerRef.value) {
                         setTimeout(() => {
                             logContainerRef.value.scrollTop = logContainerRef.value.scrollHeight;
@@ -422,6 +921,20 @@
                 }
 
                 function filterLog(type) { logFilter.value = type; }
+                function isExpandableLog(message) {
+                    const text = String(message || '');
+                    return text.length > 120 || text.includes('\n');
+                }
+                function isLogExpanded(log) {
+                    return !!log?.id && expandedLogIds.value.has(log.id);
+                }
+                function toggleLogExpanded(log) {
+                    if (!log?.id) return;
+                    const next = new Set(expandedLogIds.value);
+                    if (next.has(log.id)) next.delete(log.id);
+                    else next.add(log.id);
+                    expandedLogIds.value = next;
+                }
 
                 function clearLogs() {
                     ElementPlus.ElMessageBox.confirm('确定要清空所有日志吗？', '提示', {
@@ -430,6 +943,7 @@
                         type: 'warning'
                     }).then(() => {
                         logs.value = [];
+                        expandedLogIds.value = new Set();
                         addLog('日志已清空', 'info');
                     }).catch(() => {});
                 }
@@ -441,10 +955,324 @@
                     }
                 };
 
-                const filteredLogs = computed(() => logFilter.value === 'all' ? logs.value : logs.value.filter(log => log.type === logFilter.value));
+                const filteredLogs = computed(() => {
+                    if (logFilter.value === 'all') return logs.value;
+                    if (logFilter.value === 'repair') {
+                        return logs.value.filter(log => {
+                            const message = String(log.message || '');
+                            return message.includes('角色修复') || message.includes('角色强制重建') || message.includes('/characters/repair');
+                        });
+                    }
+                    return logs.value.filter(log => log.type === logFilter.value);
+                });
+                const currentNovelSettingText = computed(() => currentNovel.value?.generationSetting || outlineInfo.value.generationSetting || '');
+                const chapterSettingPreview = computed(() => {
+                    const text = (currentChapter.value?.generationSetting || '').replace(/\s+/g, ' ').trim();
+                    if (!text) return '';
+                    return text.length > 60 ? `${text.slice(0, 60)}...` : text;
+                });
+                const regenerateDialogTitle = computed(() => regenerateForm.value.chapter ? `重新生成第 ${regenerateForm.value.chapter.chapterNumber} 章` : '重新生成章节');
+                const failureLogs = computed(() => generationLogs.value.filter(isFailureGenerationLog));
+                const currentPipelineLabel = computed(() => {
+                    const value = String(currentPipeline.value || '').toLowerCase();
+                    if (['light', 'light_novel', 'light-novel', 'ln'].includes(value)) return '轻小说';
+                    if (['slice', 'slice_of_life', 'slice-of-life', 'daily'].includes(value)) return '日常向';
+                    return '默认爽文';
+                });
+                const currentChapterSidecar = computed(() => {
+                    const chapterNumber = Number(currentChapter.value?.chapterNumber);
+                    if (!chapterNumber) return null;
+                    return chapterSidecar.value.find(item => Number(item.chapterNumber) === chapterNumber) || null;
+                });
+                const currentChapterSidecarFacts = computed(() => {
+                    const facts = currentChapterSidecar.value?.facts;
+                    return Array.isArray(facts) ? facts : [];
+                });
+                const chapterSidecarPreview = computed(() => {
+                    const sc = currentChapterSidecar.value;
+                    if (!sc) return '';
+                    const n = currentChapterSidecarFacts.value.length;
+                    const anchor = String(sc.continuityAnchor || '').replace(/\s+/g, ' ').trim();
+                    const parts = [];
+                    if (n) parts.push(`${n} 条事实`);
+                    if (anchor) parts.push(anchor.length > 36 ? `${anchor.slice(0, 36)}…` : anchor);
+                    return parts.length ? parts.join(' · ') : '关键事实与衔接锚点';
+                });
+                const activeChapterWriteStatusMap = computed(() => ({
+                    ...regenerationChapterStatusMap.value,
+                    ...writingMonitorChapterStatusMap.value
+                }));
+                const runningRangeTuples = computed(() => {
+                    const tuples = [];
+                    const addTuple = (startRaw, endRaw) => {
+                        const start = Number(startRaw);
+                        const end = Number(endRaw);
+                        if (!start || !end) return;
+                        tuples.push([Math.min(start, end), Math.max(start, end)]);
+                    };
+                    const parseRange = (value) => {
+                        if (value && typeof value === 'object') {
+                            const start = value.start ?? value.from ?? value.rangeFrom ?? value.writeRangeFrom;
+                            const end = value.end ?? value.to ?? value.rangeTo ?? value.writeRangeTo;
+                            if (start != null && end != null) {
+                                addTuple(start, end);
+                                return;
+                            }
+                        }
+                        const text = String(value || '').trim();
+                        if (!text) return;
+                        const m = text.match(/(\d+)\s*[-~～到至]+\s*(\d+)/);
+                        if (!m) return;
+                        addTuple(m[1], m[2]);
+                    };
+
+                    addTuple(writingMonitorStatus.value?.writeRangeFrom, writingMonitorStatus.value?.writeRangeTo);
+                    const ranges = Array.isArray(regenerationTaskStatus.value?.runningRanges)
+                        ? regenerationTaskStatus.value.runningRanges
+                        : [];
+                    ranges.forEach(parseRange);
+                    const volatileRanges = Array.isArray(writingMonitorStatus.value?.volatileGuardRanges)
+                        ? writingMonitorStatus.value.volatileGuardRanges
+                        : [];
+                    volatileRanges.forEach(parseRange);
+
+                    return tuples;
+                });
+                const primaryRunningRangeTuple = computed(() => {
+                    const tuples = runningRangeTuples.value;
+                    if (!tuples.length) return null;
+                    return tuples.reduce((best, cur) => {
+                        const bestSpan = best[1] - best[0];
+                        const curSpan = cur[1] - cur[0];
+                        return curSpan > bestSpan ? cur : best;
+                    }, tuples[0]);
+                });
+                const isChapterInRunningRange = (chapter) => {
+                    const chapterNumber = Number(chapter?.chapterNumber);
+                    if (!chapterNumber) return false;
+                    return runningRangeTuples.value.some(([start, end]) => chapterNumber >= start && chapterNumber <= end);
+                };
+                const currentChapterRewriteStatus = computed(() => {
+                    const chapterNumber = Number(currentChapter.value?.chapterNumber);
+                    if (!chapterNumber) return '';
+                    return String(activeChapterWriteStatusMap.value[chapterNumber] || '');
+                });
+                const chapterRewriteProgressText = computed(() => {
+                    const rangeTuple = primaryRunningRangeTuple.value;
+                    if (!rangeTuple) return '';
+                    const [start, end] = rangeTuple;
+                    const cursor = Number(writingMonitorStatus.value?.writeCursorChapter);
+                    if (cursor) return `区间 ${start}-${end}，当前进行到第 ${cursor} 章`;
+                    return `区间 ${start}-${end} 正在处理中`;
+                });
+                const isChapterRegenerating = (chapter) => {
+                    const chapterNumber = Number(chapter?.chapterNumber);
+                    if (!chapterNumber) return false;
+                    return !!activeChapterWriteStatusMap.value[chapterNumber] || isChapterInRunningRange(chapter);
+                };
+                const getWriteTone = (value) => {
+                    const text = String(value || '').toLowerCase();
+                    if (!text) return 'generic';
+                    if (/queue|pending|排队/.test(text)) return 'queue';
+                    if (/continu|续写/.test(text)) return 'continue';
+                    if (/regenerat|rewrit|重写|重生/.test(text)) return 'rewrite';
+                    return 'generic';
+                };
+                const writingMonitorToneClass = computed(() => {
+                    const tone = getWriteTone(writingMonitorStatus.value?.writePhase || writingMonitorToolbarText.value);
+                    if (tone === 'rewrite') return 'tone-rewrite';
+                    if (tone === 'continue') return 'tone-continue';
+                    if (tone === 'queue') return 'tone-queue';
+                    return 'tone-generic';
+                });
+                const getChapterWriteStatusText = (chapter) => {
+                    const chapterNumber = Number(chapter?.chapterNumber);
+                    if (!chapterNumber) return '处理中';
+                    const text = String(activeChapterWriteStatusMap.value[chapterNumber] || '').trim();
+                    if (!text && isChapterInRunningRange(chapter)) {
+                        const cursor = Number(writingMonitorStatus.value?.writeCursorChapter);
+                        if (cursor && chapterNumber < cursor) return '已重写';
+                        if (cursor && chapterNumber === cursor) return '即将重写';
+                        return '待重写';
+                    }
+                    if (!text) return '处理中';
+                    if (text.length > 10) return `${text.slice(0, 10)}…`;
+                    return text;
+                };
+                const getChapterWriteTagType = (chapter) => {
+                    const chapterNumber = Number(chapter?.chapterNumber);
+                    const text = String(activeChapterWriteStatusMap.value[chapterNumber] || '');
+                    if (!text && isChapterInRunningRange(chapter)) {
+                        const cursor = Number(writingMonitorStatus.value?.writeCursorChapter);
+                        if (cursor && chapterNumber < cursor) return 'success';
+                        return 'warning';
+                    }
+                    const tone = getWriteTone(text);
+                    if (tone === 'queue') return 'warning';
+                    if (tone === 'continue') return 'primary';
+                    if (tone === 'rewrite') return 'danger';
+                    return 'info';
+                };
+                const writingMonitorToolbarText = computed(() => {
+                    const wm = writingMonitorStatus.value || {};
+                    const hasActiveMarks = Object.keys(activeChapterWriteStatusMap.value).length > 0;
+                    if (!wm.isBusyPersisted && !hasActiveMarks && runningRangeTuples.value.length === 0) return '';
+                    const phaseLabel = formatWritePhaseLabel(wm.writePhase);
+                    const rangeTuple = primaryRunningRangeTuple.value;
+                    const cursor = Number(wm.writeCursorChapter);
+                    if (rangeTuple) {
+                        const [start, end] = rangeTuple;
+                        if (cursor) return `${phaseLabel} · ${start}-${end}（进行到 ${cursor}）`;
+                        return `${phaseLabel} · ${start}-${end}`;
+                    }
+                    if (cursor) return `${phaseLabel} · 进行到第 ${cursor} 章`;
+                    const activeCount = Object.keys(activeChapterWriteStatusMap.value).length;
+                    if (activeCount > 0) return `${phaseLabel} · ${activeCount} 章处理中`;
+                    return phaseLabel;
+                });
                 const formatCharacter = (character) => character.profile || character.description || character.setting || JSON.stringify(character);
-                const formatGenerationLog = (log) => log.message || log.content || log.status || JSON.stringify(log);
+                const getCharacterSections = (character) => {
+                    const raw = String(character?.profileContent || character?.profile || character?.description || character?.setting || '').trim();
+                    if (!raw) return [];
+                    const lines = raw.split('\n').map(line => line.trim()).filter(Boolean);
+                    const sections = [];
+                    lines.forEach(line => {
+                        const match = line.match(/^([^:：]{1,12})[:：]\s*(.+)$/);
+                        if (match) {
+                            sections.push({ label: match[1].trim(), content: match[2].trim() });
+                        } else if (sections.length) {
+                            sections[sections.length - 1].content += ` ${line}`;
+                        }
+                    });
+                    return sections;
+                };
+                const escapeHtml = (value) => String(value || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+                const applyInlineMarkdown = (text) => escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+                const buildOutlineMeta = (rawText) => {
+                    const raw = String(rawText || '').trim();
+                    if (!raw) return { html: '', toc: [] };
+                    const lines = raw.split('\n');
+                    const toc = [];
+                    const headingCounters = {};
+                    const html = [];
+                    let inUl = false;
+                    let inOl = false;
+                    let tableBuffer = [];
+
+                    const closeLists = () => {
+                        if (inUl) { html.push('</ul>'); inUl = false; }
+                        if (inOl) { html.push('</ol>'); inOl = false; }
+                    };
+                    const flushTable = () => {
+                        if (tableBuffer.length === 0) return;
+                        const rows = tableBuffer
+                            .map(line => line.trim())
+                            .filter(line => line.startsWith('|') && line.endsWith('|') && !/^\|[-:\s|]+\|$/.test(line));
+                        if (rows.length) {
+                            html.push('<div class="outline-table-wrap"><table class="outline-table"><tbody>');
+                            rows.forEach((row, idx) => {
+                                const cells = row.slice(1, -1).split('|').map(cell => applyInlineMarkdown(cell.trim()));
+                                html.push('<tr>');
+                                cells.forEach(cell => {
+                                    html.push(idx === 0 ? `<th>${cell}</th>` : `<td>${cell}</td>`);
+                                });
+                                html.push('</tr>');
+                            });
+                            html.push('</tbody></table></div>');
+                        }
+                        tableBuffer = [];
+                    };
+
+                    lines.forEach((line) => {
+                        const trimmed = line.trim();
+                        const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
+                        const ulMatch = trimmed.match(/^[-*]\s+(.+)$/);
+                        const olMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+                        const isTableLine = /^\|.+\|$/.test(trimmed);
+
+                        if (isTableLine) {
+                            closeLists();
+                            tableBuffer.push(trimmed);
+                            return;
+                        }
+
+                        flushTable();
+
+                        if (!trimmed) {
+                            closeLists();
+                            html.push('<div class="outline-gap"></div>');
+                            return;
+                        }
+
+                        if (/^---+$/.test(trimmed)) {
+                            closeLists();
+                            html.push('<hr class="outline-divider" />');
+                            return;
+                        }
+
+                        if (headingMatch) {
+                            closeLists();
+                            const level = Math.min(6, headingMatch[1].length + 1);
+                            const titleText = headingMatch[2].trim();
+                            const slug = titleText.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '') || 'section';
+                            headingCounters[slug] = (headingCounters[slug] || 0) + 1;
+                            const anchorId = `outline-${slug}-${headingCounters[slug]}`;
+                            html.push(`<h${level} id="${anchorId}" class="outline-h${level}">${applyInlineMarkdown(titleText)}</h${level}>`);
+                            if (level <= 4) toc.push({ id: anchorId, text: titleText, level });
+                            return;
+                        }
+
+                        if (ulMatch) {
+                            if (inOl) { html.push('</ol>'); inOl = false; }
+                            if (!inUl) { html.push('<ul class="outline-ul">'); inUl = true; }
+                            html.push(`<li>${applyInlineMarkdown(ulMatch[1])}</li>`);
+                            return;
+                        }
+
+                        if (olMatch) {
+                            if (inUl) { html.push('</ul>'); inUl = false; }
+                            if (!inOl) { html.push('<ol class="outline-ol">'); inOl = true; }
+                            html.push(`<li>${applyInlineMarkdown(olMatch[2])}</li>`);
+                            return;
+                        }
+
+                        closeLists();
+                        html.push(`<p class="outline-p">${applyInlineMarkdown(trimmed)}</p>`);
+                    });
+
+                    closeLists();
+                    flushTable();
+                    return { html: html.join(''), toc };
+                };
+                const formatOutlineHtml = (rawText) => {
+                    return buildOutlineMeta(rawText).html;
+                };
+                const outlineToc = computed(() => buildOutlineMeta(outlineInfo.value.description).toc);
+                const scrollToOutlineHeading = (id) => {
+                    if (!id) return;
+                    setTimeout(() => {
+                        const element = document.getElementById(id);
+                        if (element) element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 30);
+                };
+                const formatGenerationLog = (log) => log.message || log.content || log.errorMessage || log.error || log.reason || log.status || JSON.stringify(log, null, 2);
+                const getGenerationLogStatus = (log) => log.status || log.state || log.type || log.level || '失败';
+                const getGenerationLogTime = (log) => log.time || log.createdAt || log.created_at || log.updateTime || log.updatedAt || '';
+                const isFailureGenerationLog = (log) => {
+                    const text = JSON.stringify(log || {}).toLowerCase();
+                    return ['fail', 'error', 'exception', '失败', '错误', '异常'].some(keyword => text.includes(keyword));
+                };
                 const setWorkbenchMode = (mode) => { workbenchMode.value = mode; };
+                const toggleCompactDialogMode = () => { compactDialogMode.value = !compactDialogMode.value; };
+                const openStoryInfoDialog = (tabName = 'globalSetting') => {
+                    storyInfoTab.value = tabName;
+                    storyInfoDialogVisible.value = true;
+                };
 
                 const toggleSidebar = () => { sidebarCollapsed.value = !sidebarCollapsed.value; };
 
@@ -530,7 +1358,7 @@
                     loading.novels = true;
                     try {
                         const res = await axiosInstance.get('/list');
-                        addLog(`📦 原始响应: ${JSON.stringify(res.data).substring(0, 200)}...`, 'info');
+                        addLog(`📦 原始响应: ${JSON.stringify(res.data)}`, 'info');
                         let data = res.data;
                         if (data && data.data) data = data.data;
                         if (data && data.list) data = data.list;
@@ -569,6 +1397,27 @@
                     outlineInfo.value = { ready: false, description: '', generationSetting: '' };
                     characters.value = [];
                     generationLogs.value = [];
+                    exportHealthResult.value = null;
+                    consistencyAlerts.value = [];
+                    chapterFacts.value = [];
+                    plotSnapshots.value = [];
+                    chapterSidecar.value = [];
+                    regenerationTaskStatus.value = { novelId: null, hasRunningTask: false, runningRanges: [] };
+                    regenerationChapterStatusMap.value = {};
+                    writingMonitorStatus.value = {
+                        novelId: null,
+                        writePhase: '',
+                        writeCursorChapter: null,
+                        writeRangeFrom: null,
+                        writeRangeTo: null,
+                        activeTaskId: null,
+                        activeTaskStatus: '',
+                        activeTaskCurrentChapter: null,
+                        isBusyPersisted: false,
+                        volatileGuardRanges: [],
+                        chaptersWithActiveWriteMarks: []
+                    };
+                    writingMonitorChapterStatusMap.value = {};
                     workbenchMode.value = 'chapters';
                     lastObservedChapterCount = 0;
                 };
@@ -577,11 +1426,52 @@
                     if (progressTimer) clearInterval(progressTimer);
                     progressTimer = null;
                 };
+                const stopRegenerationTaskPolling = () => {
+                    if (regenerationTaskTimer) clearInterval(regenerationTaskTimer);
+                    regenerationTaskTimer = null;
+                };
 
                 const fetchNovelInfo = async (novelId) => {
                     const res = await axiosInstance.get(`/${novelId}`);
                     const data = res.data?.data || res.data;
                     if (data && currentNovel.value?.id === novelId) currentNovel.value = { ...currentNovel.value, ...data };
+                };
+
+                const fetchPipeline = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/pipeline`);
+                    const data = res.data?.data || res.data || {};
+                    currentPipeline.value = data.pipeline || 'power_fantasy';
+                    const normalized = String(currentPipeline.value).toLowerCase();
+                    if (['light', 'light_novel', 'light-novel', 'ln'].includes(normalized)) pipelineForm.value.pipeline = 'light';
+                    else if (['slice', 'slice_of_life', 'slice-of-life', 'daily'].includes(normalized)) pipelineForm.value.pipeline = 'slice';
+                    else pipelineForm.value.pipeline = 'power_fantasy';
+                };
+
+                const openPipelineDialog = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    pipelineDialogVisible.value = true;
+                    try {
+                        await fetchPipeline(currentNovel.value.id);
+                    } catch (error) {
+                        showErrorMessage(error, '获取流水线失败');
+                    }
+                };
+
+                const submitPipelineUpdate = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    actions.pipelineUpdating = true;
+                    try {
+                        await axiosInstance.post(`/${currentNovel.value.id}/pipeline`, {
+                            pipeline: pipelineForm.value.pipeline
+                        });
+                        pipelineDialogVisible.value = false;
+                        currentPipeline.value = pipelineForm.value.pipeline;
+                        showMessage('流水线已更新，后续章节将按新风格生成');
+                    } catch (error) {
+                        showErrorMessage(error, '更新流水线失败');
+                    } finally {
+                        actions.pipelineUpdating = false;
+                    }
                 };
 
                 const fetchOutline = async (novelId) => {
@@ -602,9 +1492,162 @@
                     characters.value = normalizeList(res.data);
                 };
 
+                const repairCharacters = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    const rebuildMode = characterRepairForm.value.rebuildMode || 'all';
+                    const targetCharacterNames = (characterRepairForm.value.targetCharacterNamesInput || '')
+                        .split(/[，,]/)
+                        .map(name => name.trim())
+                        .filter(Boolean);
+                    if (rebuildMode === 'partial' && targetCharacterNames.length === 0) {
+                        showMessage('部分重建模式下请至少填写一个目标角色名', 'warning');
+                        return;
+                    }
+                    actions.repairingCharacters = true;
+                    try {
+                        const payload = {
+                            forceRegenerate: !!characterRepairForceRegenerate.value,
+                            rebuildMode
+                        };
+                        if (targetCharacterNames.length) payload.targetCharacterNames = targetCharacterNames;
+                        const characterContextHint = (characterRepairForm.value.characterContextHint || '').trim();
+                        const extraHint = (characterRepairForm.value.extraHint || '').trim();
+                        if (characterContextHint) payload.characterContextHint = characterContextHint;
+                        if (extraHint) payload.extraHint = extraHint;
+                        addLog(`🧩 [角色修复] 提交任务：mode=${rebuildMode}${payload.forceRegenerate ? ', force=true' : ''}${targetCharacterNames.length ? `, targets=${targetCharacterNames.join('/')}` : ''}`, 'info');
+                        await axiosInstance.post(`/${currentNovel.value.id}/characters/repair`, payload);
+                        showMessage(characterRepairForceRegenerate.value ? '角色强制重建任务已启动' : '角色修复任务已启动');
+                        await Promise.all([
+                            fetchCharacters(currentNovel.value.id),
+                            refreshGenerationState()
+                        ]);
+                    } catch (error) {
+                        showErrorMessage(error, '角色修复失败');
+                    } finally {
+                        actions.repairingCharacters = false;
+                    }
+                };
+
                 const fetchGenerationLogs = async (novelId) => {
                     const res = await axiosInstance.get(`/${novelId}/generation-logs`);
                     generationLogs.value = normalizeList(res.data);
+                };
+
+                const refreshFailureLogs = async () => {
+                    if (!currentNovel.value) return;
+                    loading.failureLogs = true;
+                    try {
+                        await fetchGenerationLogs(currentNovel.value.id);
+                        if (failureLogs.value.length === 0) addLog('未查询到失败日志', 'warning');
+                    } catch (error) {
+                        addLog(`获取失败日志失败: ${error.message}`, 'error');
+                        showErrorMessage(error, '获取失败日志失败');
+                    } finally { loading.failureLogs = false; }
+                };
+
+                const openFailureLogs = async () => {
+                    failureLogDialogVisible.value = true;
+                    await refreshFailureLogs();
+                };
+
+                const fetchExportHealth = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/export-health`);
+                    const data = res.data?.data || res.data || {};
+                    exportHealthResult.value = {
+                        healthy: !!data.healthy,
+                        issues: Array.isArray(data.issues) ? data.issues : []
+                    };
+                };
+
+                const openExportHealthDialog = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    loading.exportHealth = true;
+                    try {
+                        await fetchExportHealth(currentNovel.value.id);
+                    } catch (error) {
+                        showErrorMessage(error, '获取导出体检失败');
+                    } finally {
+                        loading.exportHealth = false;
+                    }
+                };
+
+                const fetchConsistencyAlerts = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/consistency-alerts`);
+                    consistencyAlerts.value = normalizeList(res.data);
+                };
+
+                const openConsistencyAlertsDialog = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    loading.consistencyAlerts = true;
+                    try {
+                        await fetchConsistencyAlerts(currentNovel.value.id);
+                    } catch (error) {
+                        showErrorMessage(error, '获取一致性告警失败');
+                    } finally {
+                        loading.consistencyAlerts = false;
+                    }
+                };
+
+                const fetchChapterFacts = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/chapter-facts`);
+                    chapterFacts.value = normalizeList(res.data);
+                };
+
+                const fetchChapterSidecar = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/chapter-sidecar`);
+                    chapterSidecar.value = normalizeList(res.data);
+                };
+
+                const openChapterFactsDialog = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    loading.chapterFacts = true;
+                    try {
+                        await fetchChapterFacts(currentNovel.value.id);
+                    } catch (error) {
+                        showErrorMessage(error, '获取章节事实失败');
+                    } finally {
+                        loading.chapterFacts = false;
+                    }
+                };
+
+                const fetchPlotSnapshots = async (novelId) => {
+                    const res = await axiosInstance.get(`/${novelId}/plot-snapshots`);
+                    plotSnapshots.value = normalizeList(res.data);
+                };
+
+                const openPlotSnapshotsDialog = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    loading.plotSnapshots = true;
+                    try {
+                        await fetchPlotSnapshots(currentNovel.value.id);
+                    } catch (error) {
+                        showErrorMessage(error, '获取主线快照失败');
+                    } finally {
+                        loading.plotSnapshots = false;
+                    }
+                };
+
+                const refreshQualityTab = async () => {
+                    if (qualityTab.value === 'consistencyAlerts') {
+                        await openConsistencyAlertsDialog();
+                        return;
+                    }
+                    if (qualityTab.value === 'chapterFacts') {
+                        await openChapterFactsDialog();
+                        return;
+                    }
+                    if (qualityTab.value === 'plotSnapshots') {
+                        await openPlotSnapshotsDialog();
+                        return;
+                    }
+                    await openExportHealthDialog();
+                };
+
+                const openQualityCenterDialog = async (tabName = 'exportHealth') => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    qualityTab.value = tabName;
+                    qualityCenterDialogVisible.value = true;
+                    await refreshQualityTab();
                 };
 
                 const refreshGenerationState = async () => {
@@ -620,16 +1663,37 @@
                             charactersReady: !!progress.charactersReady,
                             chapterCount: Number(progress.chapterCount || 0),
                             failedCount: Number(progress.failedCount || 0),
-                            status: progress.status || '生成中'
+                            // 新协议用 generationStatus 表示业务进度，status/code 只表示接口调用结果
+                            status: progress.generationStatus || progress.status || '生成中'
                         };
+                        const persistedWorkbench = progress.persistedWorkbench && typeof progress.persistedWorkbench === 'object'
+                            ? progress.persistedWorkbench
+                            : null;
+                        if (persistedWorkbench && currentNovel.value?.id === novelId) {
+                            writingMonitorStatus.value = {
+                                ...writingMonitorStatus.value,
+                                novelId,
+                                writePhase: String(persistedWorkbench.writePhase || writingMonitorStatus.value.writePhase || ''),
+                                writeCursorChapter: persistedWorkbench.writeCursorChapter ?? writingMonitorStatus.value.writeCursorChapter ?? null,
+                                writeRangeFrom: persistedWorkbench.writeRangeFrom ?? writingMonitorStatus.value.writeRangeFrom ?? null,
+                                writeRangeTo: persistedWorkbench.writeRangeTo ?? writingMonitorStatus.value.writeRangeTo ?? null,
+                                activeTaskId: progress.activeTaskId ?? writingMonitorStatus.value.activeTaskId ?? null,
+                                activeTaskStatus: String(progress.activeTaskStatus ?? writingMonitorStatus.value.activeTaskStatus ?? '').trim(),
+                                activeTaskCurrentChapter: progress.activeTaskCurrentChapter ?? writingMonitorStatus.value.activeTaskCurrentChapter ?? null,
+                                isBusyPersisted: typeof persistedWorkbench.isBusyPersisted === 'boolean'
+                                    ? persistedWorkbench.isBusyPersisted
+                                    : !!writingMonitorStatus.value.isBusyPersisted
+                            };
+                        }
                         if (generationProgress.value.outlineReady) await fetchOutline(novelId);
                         if (generationProgress.value.charactersReady) await fetchCharacters(novelId);
                         if (generationProgress.value.chapterCount !== previousChapterCount || chapters.value.length === 0) {
                             await fetchChapters(novelId);
+                            await fetchChapterSidecar(novelId);
                             lastObservedChapterCount = generationProgress.value.chapterCount;
                         }
                         await fetchGenerationLogs(novelId);
-                        const doneStatuses = ['completed', 'complete', 'done', 'finished', 'success', '已完成', '完成'];
+                        const doneStatuses = ['completed', 'complete', 'done', 'finished', 'ready', 'generating_or_ready', '已完成', '完成'];
                         const failedStatuses = ['failed', 'error', '失败'];
                         const normalizedStatus = String(generationProgress.value.status || '').toLowerCase();
                         if (doneStatuses.includes(normalizedStatus) || failedStatuses.includes(normalizedStatus)) stopProgressPolling();
@@ -639,9 +1703,7 @@
                 };
 
                 const startProgressPolling = () => {
-                    stopProgressPolling();
                     refreshGenerationState();
-                    progressTimer = setInterval(refreshGenerationState, 2500);
                 };
 
                 const waitForCreatedNovel = async (existingNovelIds, createdId) => {
@@ -656,50 +1718,87 @@
 
                 const selectNovel = async (row) => {
                     stopProgressPolling();
+                    stopRegenerationTaskPolling();
                     resetGenerationState();
                     currentNovel.value = row;
                     currentChapter.value = null;
+                    chapterSettingExpanded.value = false;
+                    chapterSidecarExpanded.value = false;
                     await fetchNovelInfo(row.id);
+                    await fetchPipeline(row.id);
+                    await fetchRegenerationTasks(row.id);
+                    await fetchWritingMonitor(row.id, { silent: true });
                     await fetchChapters(row.id);
+                    await fetchChapterSidecar(row.id);
                     lastObservedChapterCount = chapters.value.length;
-                    startProgressPolling();
+                    await refreshGenerationState();
+                    startRegenerationTaskPolling(row.id);
                 };
 
                 const refreshChapters = async () => {
                     if (!currentNovel.value) return;
                     actions.refreshing = true;
-                    try { await fetchChapters(currentNovel.value.id); showMessage('章节列表已刷新'); }
+                    try {
+                        await Promise.all([
+                            fetchChapters(currentNovel.value.id),
+                            fetchChapterSidecar(currentNovel.value.id)
+                        ]);
+                        showMessage('章节列表已刷新');
+                    }
                     finally { actions.refreshing = false; }
+                };
+
+                const toggleChapterMetaSetting = () => {
+                    const next = !chapterSettingExpanded.value;
+                    chapterSettingExpanded.value = next;
+                    if (next) chapterSidecarExpanded.value = false;
+                };
+                const toggleChapterMetaSidecar = () => {
+                    const next = !chapterSidecarExpanded.value;
+                    chapterSidecarExpanded.value = next;
+                    if (next) chapterSettingExpanded.value = false;
                 };
 
                 const handleChapterSelect = (index) => {
                     const chapter = chapters.value.find(c => c.id == index);
                     if (chapter) {
                         currentChapter.value = chapter;
-                        setTimeout(() => { if (contentRef.value) contentRef.value.scrollTop = 0; }, 100);
+                        chapterSettingExpanded.value = false;
+                        chapterSidecarExpanded.value = false;
+                        setTimeout(() => {
+                            if (readerRef.value) readerRef.value.scrollTo({ top: 0, behavior: 'auto' });
+                            else if (contentRef.value) contentRef.value.scrollIntoView({ block: 'start', behavior: 'auto' });
+                        }, 100);
                     }
                 };
 
                 const backToNovelList = () => {
                     stopProgressPolling();
+                    stopRegenerationTaskPolling();
                     currentNovel.value = null;
                     currentChapter.value = null;
+                    chapterSettingExpanded.value = false;
+                    chapterSidecarExpanded.value = false;
                     chapters.value = [];
                     resetGenerationState();
                 };
-                const openCreateDialog = () => { form.value = { topic: '', generationSetting: '' }; dialogVisible.value = true; };
+                const openCreateDialog = () => { form.value = { topic: '', generationSetting: '', style: '' }; dialogVisible.value = true; };
 
                 const submitCreate = async () => {
                     if (!form.value.topic.trim()) { showMessage('请输入小说题材', 'warning'); return; }
                     actions.creating = true;
                     try {
                         const existingNovelIds = new Set(novels.value.map(n => n.id));
-                        const createRes = await axiosInstance.post('/create', {
+                        const payload = {
                             topic: form.value.topic.trim(),
                             generationSetting: form.value.generationSetting.trim()
-                        });
+                        };
+                        const style = String(form.value.style || '').trim();
+                        const createRes = style
+                            ? await axiosInstance.post(`/style/${encodeURIComponent(style)}/create`, payload, { baseURL: `${apiBase.value}/api/novel-style` })
+                            : await axiosInstance.post('/create', payload);
                         dialogVisible.value = false;
-                        showMessage('创作任务已提交，正在刷新列表并跟踪生成进度');
+                        showMessage('创作任务已提交，请稍后手动刷新进度查看结果');
                         const created = createRes.data?.data || createRes.data || {};
                         const createdId = created.id || created.novelId;
                         const targetNovel = await waitForCreatedNovel(existingNovelIds, createdId);
@@ -710,37 +1809,288 @@
                     } finally { actions.creating = false; }
                 };
 
-                const continueNovel = () => {
+                const openRegenerateDialog = (chapter) => {
                     if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
-                    continueForm.value = { generationSetting: '' };
+                    if (isChapterRegenerating(chapter)) { showMessage('该章节正在写作/重写流程中，暂不可重生成', 'warning'); return; }
+                    regenerateForm.value = { chapter, generationSetting: chapter.generationSetting || '' };
+                    regenerateDialogVisible.value = true;
+                };
+
+                const submitRegenerateChapter = async () => {
+                    if (!currentNovel.value || !regenerateForm.value.chapter) { showMessage('请先选择要重新生成的章节', 'warning'); return; }
+                    const chapterNumber = regenerateForm.value.chapter.chapterNumber;
+                    actions.regenerating = true;
+                    try {
+                        const generationSetting = regenerateForm.value.generationSetting.trim();
+                        const payload = generationSetting ? { generationSetting } : {};
+                        await axiosInstance.post(`/${currentNovel.value.id}/chapters/${chapterNumber}/regenerate`, payload);
+                        regenerateDialogVisible.value = false;
+                        showMessage(`第 ${chapterNumber} 章重新生成任务已提交，请稍后手动刷新进度查看结果`);
+                        await refreshGenerationState();
+                    } catch (error) {
+                        showErrorMessage(error, '重新生成章节失败');
+                    } finally { actions.regenerating = false; }
+                };
+
+                const openRangeRegenerateDialog = () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    rangeRegenerateForm.value = { startChapter: null, endChapter: null, generationSetting: '' };
+                    rangeRegenerateDialogVisible.value = true;
+                    fetchRegenerationTasks(currentNovel.value.id);
+                };
+
+                const fetchRegenerationTasks = async (novelId, options = {}) => {
+                    if (!novelId) return;
+                    const silent = !!options.silent;
+                    if (!silent) loading.regenerationTasks = true;
+                    try {
+                        const res = await axiosInstance.get(`/${novelId}/regeneration-tasks`);
+                        const data = res.data?.data || res.data || {};
+                        const nextChapterStatusMap = {};
+                        const isRunningStatus = (value) => {
+                            const text = String(value || '').toLowerCase();
+                            if (!text) return true;
+                            return /running|processing|pending|queue|rewrit|regenerat|重写|重生|处理中|排队|执行中/.test(text);
+                        };
+                        const markChapterRunning = (input, defaultStatus = '重写中') => {
+                            const chapterNumber = Number(input?.chapterNumber ?? input?.chapter ?? input);
+                            if (!chapterNumber) return;
+                            const rawStatus = String(input?.status || input?.state || input?.taskStatus || defaultStatus).trim();
+                            if (Object.prototype.hasOwnProperty.call(input || {}, 'running') && !input.running) return;
+                            if (!isRunningStatus(rawStatus)) return;
+                            nextChapterStatusMap[chapterNumber] = rawStatus || defaultStatus;
+                        };
+                        const statusSources = [
+                            data.runningChapters,
+                            data.chapters,
+                            data.chapterTasks,
+                            data.tasks
+                        ];
+                        statusSources.forEach((items) => {
+                            if (Array.isArray(items)) items.forEach(item => markChapterRunning(item));
+                        });
+                        if (Array.isArray(data.runningChapterNumbers)) {
+                            data.runningChapterNumbers.forEach(chapterNumber => markChapterRunning(chapterNumber));
+                        }
+                        const chapterStatusMap = data.chapterStatuses || data.chapterStatusMap || data.chapterStatus;
+                        if (chapterStatusMap && typeof chapterStatusMap === 'object' && !Array.isArray(chapterStatusMap)) {
+                            Object.keys(chapterStatusMap).forEach((key) => {
+                                const chapterNumber = Number(key);
+                                if (!chapterNumber) return;
+                                const value = chapterStatusMap[key];
+                                const rawStatus = typeof value === 'object'
+                                    ? String(value?.status || value?.state || value?.taskStatus || '').trim()
+                                    : String(value || '').trim();
+                                if (!isRunningStatus(rawStatus)) return;
+                                nextChapterStatusMap[chapterNumber] = rawStatus || '重写中';
+                            });
+                        }
+                        regenerationTaskStatus.value = {
+                            novelId,
+                            hasRunningTask: !!data.hasRunningTask,
+                            runningRanges: Array.isArray(data.runningRanges) ? data.runningRanges : []
+                        };
+                        const wb = data.persistedWorkbench || {};
+                        if (wb && typeof wb === 'object') {
+                            writingMonitorStatus.value = {
+                                ...writingMonitorStatus.value,
+                                novelId,
+                                writePhase: String(wb.writePhase || writingMonitorStatus.value.writePhase || ''),
+                                writeCursorChapter: wb.writeCursorChapter ?? writingMonitorStatus.value.writeCursorChapter ?? null,
+                                writeRangeFrom: wb.writeRangeFrom ?? writingMonitorStatus.value.writeRangeFrom ?? null,
+                                writeRangeTo: wb.writeRangeTo ?? writingMonitorStatus.value.writeRangeTo ?? null,
+                                isBusyPersisted: typeof wb.isBusyPersisted === 'boolean' ? wb.isBusyPersisted : !!writingMonitorStatus.value.isBusyPersisted
+                            };
+                        }
+                        regenerationChapterStatusMap.value = nextChapterStatusMap;
+                    } catch (error) {
+                        if (!silent) showErrorMessage(error, '获取区间重生任务状态失败');
+                    } finally {
+                        if (!silent) loading.regenerationTasks = false;
+                    }
+                };
+                const formatWritePhaseLabel = (phase) => {
+                    const key = String(phase || '').toUpperCase();
+                    if (!key) return '写作中';
+                    if (key.includes('REGENERAT')) return '重写中';
+                    if (key.includes('CONTINUE')) return '续写中';
+                    if (key.includes('WRIT')) return '写作中';
+                    if (key.includes('QUEUE') || key.includes('PENDING')) return '排队中';
+                    return key;
+                };
+                const fetchWritingMonitor = async (novelId, options = {}) => {
+                    if (!novelId) return;
+                    const silent = !!options.silent;
+                    try {
+                        const res = await axiosInstance.get(`/${novelId}/writing-monitor`);
+                        const data = res.data?.data || res.data || {};
+                        const persistedWorkbench = data.persistedWorkbench && typeof data.persistedWorkbench === 'object'
+                            ? data.persistedWorkbench
+                            : null;
+                        const effective = persistedWorkbench || data;
+                        const writePhase = String(data.writePhase || '');
+                        const marks = Array.isArray(data.chaptersWithActiveWriteMarks)
+                            ? data.chaptersWithActiveWriteMarks
+                            : [];
+                        writingMonitorStatus.value = {
+                            novelId,
+                            writePhase: String(effective.writePhase || writePhase || ''),
+                            writeCursorChapter: effective.writeCursorChapter ?? data.writeCursorChapter ?? writingMonitorStatus.value.writeCursorChapter ?? null,
+                            writeRangeFrom: effective.writeRangeFrom ?? data.writeRangeFrom ?? writingMonitorStatus.value.writeRangeFrom ?? null,
+                            writeRangeTo: effective.writeRangeTo ?? data.writeRangeTo ?? writingMonitorStatus.value.writeRangeTo ?? null,
+                            activeTaskId: data.activeTaskId ?? effective.activeTaskId ?? null,
+                            activeTaskStatus: String(data.activeTaskStatus ?? effective.activeTaskStatus ?? '').trim(),
+                            activeTaskCurrentChapter: data.activeTaskCurrentChapter ?? effective.activeTaskCurrentChapter ?? null,
+                            isBusyPersisted: typeof effective.isBusyPersisted === 'boolean' ? effective.isBusyPersisted : !!data.isBusyPersisted,
+                            volatileGuardRanges: Array.isArray(data.volatileGuardRanges) ? data.volatileGuardRanges : [],
+                            chaptersWithActiveWriteMarks: marks
+                        };
+                        const nextMap = {};
+                        const fallbackLabel = formatWritePhaseLabel(writingMonitorStatus.value.writePhase);
+                        marks.forEach((item) => {
+                            const chapterNumber = Number(item?.chapterNumber ?? item?.chapter ?? item);
+                            if (!chapterNumber) return;
+                            const label = String(item?.status || item?.state || item?.mark || fallbackLabel || '写作中').trim();
+                            nextMap[chapterNumber] = label || '写作中';
+                        });
+                        writingMonitorChapterStatusMap.value = nextMap;
+                    } catch (error) {
+                        if (!silent) showErrorMessage(error, '获取写作监控状态失败');
+                    }
+                };
+                const startRegenerationTaskPolling = (novelId) => {
+                    stopRegenerationTaskPolling();
+                    if (!novelId) return;
+                    fetchRegenerationTasks(novelId, { silent: true });
+                    fetchWritingMonitor(novelId, { silent: true });
+                    regenerationTaskTimer = setInterval(() => {
+                        if (!currentNovel.value || currentNovel.value.id !== novelId) return;
+                        fetchRegenerationTasks(novelId, { silent: true });
+                        fetchWritingMonitor(novelId, { silent: true });
+                    }, 3000);
+                };
+
+                const waitForRangeRegenerationFinished = async (novelId) => {
+                    for (let i = 0; i < 80; i++) {
+                        await fetchRegenerationTasks(novelId);
+                        if (!regenerationTaskStatus.value.hasRunningTask) return true;
+                        await new Promise(resolve => setTimeout(resolve, 2500));
+                    }
+                    return false;
+                };
+
+                const submitRangeRegenerate = async () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    if (rangeRegenerateForm.value.startChapter == null || rangeRegenerateForm.value.endChapter == null) {
+                        showMessage('请填写起始章节和结束章节', 'warning');
+                        return;
+                    }
+                    actions.rangeRegenerating = true;
+                    try {
+                        await fetchRegenerationTasks(currentNovel.value.id);
+                        if (regenerationTaskStatus.value.hasRunningTask) {
+                            showMessage(`当前已有区间重生任务运行中：${regenerationTaskStatus.value.runningRanges.join(', ') || '未知区间'}`, 'warning');
+                            return;
+                        }
+                        const payload = {
+                            startChapter: Number(rangeRegenerateForm.value.startChapter),
+                            endChapter: Number(rangeRegenerateForm.value.endChapter)
+                        };
+                        const setting = (rangeRegenerateForm.value.generationSetting || '').trim();
+                        if (setting) payload.generationSetting = setting;
+                        await axiosInstance.post(`/${currentNovel.value.id}/chapters/regenerate-range`, payload);
+                        rangeRegenerateDialogVisible.value = false;
+                        showMessage('区间重生任务已提交，正在自动跟踪任务状态');
+                        const finished = await waitForRangeRegenerationFinished(currentNovel.value.id);
+                        await Promise.all([
+                            fetchChapters(currentNovel.value.id),
+                            fetchChapterFacts(currentNovel.value.id),
+                            fetchPlotSnapshots(currentNovel.value.id),
+                            refreshGenerationState()
+                        ]);
+                        if (!finished) showMessage('区间重生仍在执行中，可稍后刷新查看最新结果', 'warning');
+                    } catch (error) {
+                        const errorCode = String(error?.response?.data?.code || '').toUpperCase();
+                        const errorMessage = String(error?.response?.data?.message || error?.message || '');
+                        const conflictDetected =
+                            errorCode === 'REGENERATE_RANGE_TASK_FAILED' ||
+                            /重叠|冲突|运行中|running|overlap|conflict/i.test(errorMessage);
+                        if (conflictDetected) {
+                            await fetchRegenerationTasks(currentNovel.value.id);
+                            showMessage(`区间重生任务存在冲突，请稍后重试${regenerationTaskStatus.value.runningRanges.length ? `（当前区间：${regenerationTaskStatus.value.runningRanges.join(', ')}）` : ''}`, 'warning');
+                            return;
+                        }
+                        showErrorMessage(error, '区间重生失败');
+                    } finally {
+                        actions.rangeRegenerating = false;
+                    }
+                };
+
+                const openContinueDialog = () => {
+                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    continueForm.value = { mode: 'continue', chapterNumber: null, targetChapterCount: null, generationSetting: '' };
                     continueDialogVisible.value = true;
                 };
 
                 const submitContinueNovel = async () => {
                     if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
+                    const mode = continueForm.value.mode;
+                    if (mode === 'auto') {
+                        actions.autoContinuing = true;
+                        try {
+                            const payload = {};
+                            if (continueForm.value.targetChapterCount != null) payload.targetChapterCount = Number(continueForm.value.targetChapterCount);
+                            const setting = (continueForm.value.generationSetting || '').trim();
+                            if (setting) payload.generationSetting = setting;
+                            await axiosInstance.post(`/${currentNovel.value.id}/auto-continue`, payload);
+                            continueDialogVisible.value = false;
+                            showMessage('自动续写任务已提交，请稍后手动刷新进度查看结果');
+                            await refreshGenerationState();
+                        } catch (error) {
+                            showErrorMessage(error, '自动续写失败');
+                        } finally { actions.autoContinuing = false; }
+                        return;
+                    }
+
                     actions.continuing = true;
                     try {
-                        await axiosInstance.post(`/${currentNovel.value.id}/continue`, {
-                            generationSetting: continueForm.value.generationSetting.trim()
-                        });
+                        const payload = {};
+                        if (continueForm.value.chapterNumber != null) payload.chapterNumber = Number(continueForm.value.chapterNumber);
+                        const setting = (continueForm.value.generationSetting || '').trim();
+                        if (setting) payload.generationSetting = setting;
+                        await axiosInstance.post(`/${currentNovel.value.id}/continue`, payload);
                         continueDialogVisible.value = false;
-                        showMessage('续写任务已提交，正在跟踪生成进度');
-                        startProgressPolling();
+                        showMessage('续写任务已提交，请稍后手动刷新进度查看结果');
+                        await refreshGenerationState();
                     } catch (error) {
                         showErrorMessage(error, '续写失败');
                     } finally { actions.continuing = false; }
                 };
 
-                const autoContinueNovel = async () => {
-                    if (!currentNovel.value) { showMessage('请先选择一本小说', 'warning'); return; }
-                    actions.autoContinuing = true;
+                const copyCurrentChapter = async () => {
+                    if (!currentChapter.value || !currentChapter.value.content) {
+                        showMessage('当前没有可复制的章节内容', 'warning');
+                        return;
+                    }
+                    const chapterText = currentChapter.value.content;
                     try {
-                        await axiosInstance.post(`/${currentNovel.value.id}/auto-continue`);
-                        showMessage('自动续写任务已提交，正在跟踪生成进度');
-                        startProgressPolling();
+                        if (navigator.clipboard?.writeText) {
+                            await navigator.clipboard.writeText(chapterText);
+                        } else {
+                            const textarea = document.createElement('textarea');
+                            textarea.value = chapterText;
+                            textarea.style.position = 'fixed';
+                            textarea.style.opacity = '0';
+                            document.body.appendChild(textarea);
+                            textarea.focus();
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                        }
+                        showMessage('本章内容已复制');
                     } catch (error) {
-                        showErrorMessage(error, '自动续写失败');
-                    } finally { actions.autoContinuing = false; }
+                        showErrorMessage(error, '复制本章内容失败');
+                    }
                 };
 
                 const exportNovel = async () => {
@@ -802,17 +2152,20 @@
                     testConnection();
                 });
 
-                onBeforeUnmount(() => { stopProgressPolling(); });
+                onBeforeUnmount(() => {
+                    stopProgressPolling();
+                    stopRegenerationTaskPolling();
+                });
 
                 return {
-                    novels, chapters, currentNovel, currentChapter, dialogVisible, form, continueDialogVisible, continueForm,
-                    generationProgress, outlineInfo, characters, generationLogs, workbenchMode, contentRef, logContainerRef,
-                    activeView, logFilter, filteredLogs, loading, actions, testing, isCloudServer, connectionStatus,
+                    novels, chapters, currentNovel, currentChapter, dialogVisible, form, continueDialogVisible, regenerateDialogVisible, rangeRegenerateDialogVisible, failureLogDialogVisible, qualityCenterDialogVisible, qualityTab, storyInfoDialogVisible, storyInfoTab, pipelineDialogVisible, continueForm, regenerateForm, rangeRegenerateForm, pipelineForm, characterRepairForceRegenerate, characterRepairForm,
+                    generationProgress, outlineInfo, characters, generationLogs, failureLogs, exportHealthResult, consistencyAlerts, chapterFacts, plotSnapshots, chapterSidecar, currentPipeline, currentPipelineLabel, regenerationTaskStatus, currentChapterSidecar, currentChapterSidecarFacts, chapterSidecarPreview, currentChapterRewriteStatus, chapterRewriteProgressText, writingMonitorToolbarText, writingMonitorToneClass, outlineToc, currentNovelSettingText, chapterSettingPreview, regenerateDialogTitle, workbenchMode, chapterSettingExpanded, chapterSidecarExpanded, contentRef, readerRef, logContainerRef,
+                    activeView, logFilter, filteredLogs, loading, actions, testing, isCloudServer, connectionStatus, compactDialogMode,
                     chapterListWidth, startResizeChapterList,
                     sidebarCollapsed, toggleSidebar, switchToCloud, switchToLocal, testConnection, saveConfig,
                     fetchNovels, selectNovel, refreshChapters, refreshGenerationState, handleChapterSelect, backToNovelList,
-                    openCreateDialog, submitCreate, continueNovel, submitContinueNovel, autoContinueNovel, exportNovel, handleDeleteNovel,
-                    filterLog, clearLogs, formatCharacter, formatGenerationLog, setWorkbenchMode, handleViewChange, minimizeWindow, maximizeWindow, closeWindow
+                    openCreateDialog, submitCreate, openContinueDialog, submitContinueNovel, openRegenerateDialog, submitRegenerateChapter, openRangeRegenerateDialog, submitRangeRegenerate, openPipelineDialog, submitPipelineUpdate, repairCharacters, openStoryInfoDialog, copyCurrentChapter, exportNovel, openQualityCenterDialog, refreshQualityTab, openExportHealthDialog, openConsistencyAlertsDialog, openChapterFactsDialog, openPlotSnapshotsDialog, toggleChapterMetaSetting, toggleChapterMetaSidecar, isChapterRegenerating, getChapterWriteStatusText, getChapterWriteTagType, handleDeleteNovel,
+                    filterLog, clearLogs, isExpandableLog, isLogExpanded, toggleLogExpanded, formatCharacter, getCharacterSections, formatOutlineHtml, scrollToOutlineHeading, formatGenerationLog, getGenerationLogStatus, getGenerationLogTime, refreshFailureLogs, openFailureLogs, setWorkbenchMode, toggleCompactDialogMode, handleViewChange, minimizeWindow, maximizeWindow, closeWindow
                 };
             }
         };
@@ -860,8 +2213,8 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            padding: 8px 16px 16px;
-            gap: 12px;
+            padding: 8px 16px 14px;
+            gap: 10px;
         }
 
         .titlebar, .sidebar, .page .panel, .page-head {
@@ -873,13 +2226,13 @@
         }
 
         .titlebar {
-            min-height: 58px;
+            min-height: 52px;
             border-radius: var(--radius);
             display: grid;
-            grid-template-columns: minmax(180px, 260px) minmax(0, 1fr) auto;
+            grid-template-columns: minmax(128px, 170px) minmax(0, 1fr) auto;
             align-items: center;
-            gap: 14px;
-            padding: 8px 6px 8px 14px;
+            gap: 12px;
+            padding: 7px 6px 7px 12px;
             -webkit-app-region: drag;
             overflow: hidden;
             background:
@@ -888,32 +2241,36 @@
         }
 
         .titlebar-left, .titlebar-center, .titlebar-actions { display: flex; align-items: center; }
-        .titlebar-left { min-width: 0; }
+        .titlebar-left { min-width: 0; gap: 9px; }
         .titlebar-center {
             justify-content: flex-end;
-            gap: 8px;
+            gap: 10px;
             min-width: 0;
             -webkit-app-region: no-drag;
         }
         .titlebar-actions { -webkit-app-region: no-drag; height: 100%; justify-content: flex-end; }
         .app-mark {
-            width: 22px; height: 22px; border-radius: 8px;
+            width: 28px; height: 28px; border-radius: 10px;
             background: linear-gradient(135deg, var(--primary), #14b8a6);
             color: #fff; display:flex; align-items:center; justify-content:center;
-            font-weight: 800; font-size: 12px; margin-right: 9px;
+            font-weight: 900; font-size: 13px;
             box-shadow: 0 8px 16px rgba(37, 99, 235, 0.20);
         }
-        .app-name { font-size: 13px; font-weight: 800; line-height: 1; letter-spacing: .2px; }
+        .app-name { font-size: 15px; font-weight: 900; line-height: 1; letter-spacing: .2px; }
         .app-subtitle { font-size: 10px; color: var(--muted); line-height: 1.2; margin-top: 4px; }
         .titlebar .el-button,
         .titlebar .el-tag,
         .titlebar .chip {
             -webkit-app-region: no-drag;
         }
-        .titlebar .el-button { min-height: 28px; }
+        .titlebar .el-button { min-height: 28px; padding-left: 10px; padding-right: 10px; }
+        .service-cluster { display:flex; align-items:center; gap: 7px; padding: 4px 7px 4px 9px; border-radius: 14px; background: rgba(255,255,255,0.58); border: 1px solid rgba(15,23,42,0.06); box-shadow: inset 0 1px 0 rgba(255,255,255,0.65); }
+        .service-label { color: var(--muted); font-size: 12px; font-weight: 800; }
+        .current-novel-chip { min-width:0; max-width: 280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding: 7px 11px; border-radius: 999px; background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(20,184,166,0.10)); color: #1e3a8a; border: 1px solid rgba(37,99,235,0.12); font-size: 12px; font-weight: 800; }
         .service-switch { flex-shrink: 0; }
+        .compact-service-switch .el-button { padding-left: 9px; padding-right: 9px; }
         .window-btn {
-            width: 44px; height: 38px; border: none; background: transparent; cursor: pointer; color: #475569;
+            width: 38px; height: 34px; border: none; background: transparent; cursor: pointer; color: #475569;
             transition: background .18s ease, color .18s ease;
         }
         .window-btn:hover { background: rgba(15, 23, 42, 0.07); }
@@ -935,8 +2292,8 @@
         .toolbar-brand { display:flex; flex-direction:column; gap:3px; padding-right: 12px; border-right: 1px solid var(--line); }
         .toolbar-label { font-size: 11px; color: var(--muted); }
         .toolbar-value { font-size: 14px; font-weight: 800; letter-spacing: .2px; }
-        .chip { font-size: 12px; padding: 6px 11px; border-radius: 999px; background: rgba(37, 99, 235, 0.09); color: #1e3a8a; white-space: nowrap; border: 1px solid rgba(37,99,235,0.10); }
-        .chip-muted { background: rgba(15, 23, 42, 0.05); color: #334155; max-width: 360px; overflow: hidden; text-overflow: ellipsis; border-color: rgba(15,23,42,0.06); }
+        .chip { font-size: 12px; padding: 5px 9px; border-radius: 999px; background: rgba(37, 99, 235, 0.09); color: #1e3a8a; white-space: nowrap; border: 1px solid rgba(37,99,235,0.10); }
+        .chip-muted { background: rgba(15, 23, 42, 0.05); color: #334155; max-width: 260px; overflow: hidden; text-overflow: ellipsis; border-color: rgba(15,23,42,0.06); }
 
         .workspace { flex: 1; display: flex; gap: 14px; min-height: 0; }
         .sidebar { width: 224px; border-radius: var(--radius); padding: 13px; flex-shrink: 0; display:flex; flex-direction:column; background: linear-gradient(180deg, rgba(255,255,255,0.94), rgba(255,255,255,0.82)); }
@@ -985,15 +2342,55 @@
         }
 
         .content { flex:1; min-width:0; overflow:hidden; padding-right: 0; }
-        .page { display:flex; flex-direction:column; gap: 10px; height: 100%; min-height: 0; overflow:hidden; padding-bottom: 8px; }
+        .page { display:flex; flex-direction:column; gap: 10px; height: 100%; min-height: 0; overflow:hidden; padding-bottom: 0; }
+        .dashboard-page { gap: 14px; overflow:auto; padding-bottom: 2px; }
+        .dashboard-hero {
+            flex: 0 0 auto;
+            min-height: 360px;
+            border-radius: var(--radius);
+            padding: 34px;
+            display:grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(320px, .75fr);
+            gap: 26px;
+            align-items: stretch;
+            overflow:hidden;
+            position: relative;
+            background:
+                radial-gradient(circle at 12% 14%, rgba(37,99,235,0.30), transparent 30%),
+                radial-gradient(circle at 88% 8%, rgba(20,184,166,0.24), transparent 28%),
+                linear-gradient(135deg, rgba(255,255,255,0.96), rgba(239,246,255,0.82));
+            border: 1px solid rgba(255,255,255,0.74);
+            box-shadow: var(--shadow);
+        }
+        .dashboard-hero::after { content:''; position:absolute; right:-70px; bottom:-90px; width:260px; height:260px; border-radius:50%; background: rgba(37,99,235,0.10); }
+        .hero-copy { position:relative; z-index:1; display:flex; flex-direction:column; justify-content:center; max-width: 760px; }
+        .hero-eyebrow { width:max-content; padding: 7px 12px; border-radius: 999px; background: rgba(37,99,235,0.11); color: var(--primary); font-size: 12px; font-weight: 900; letter-spacing: .8px; }
+        .hero-copy h1 { margin: 18px 0 12px; font-size: 42px; line-height: 1.08; letter-spacing: -1.4px; color: #0f172a; }
+        .hero-copy p { margin: 0; max-width: 640px; color: #475569; font-size: 16px; line-height: 1.85; }
+        .hero-actions { display:flex; align-items:center; gap: 12px; margin-top: 26px; }
+        .hero-card { position:relative; z-index:1; border-radius: 22px; padding: 20px; background: rgba(255,255,255,0.72); border: 1px solid rgba(255,255,255,0.76); box-shadow: var(--shadow-soft); backdrop-filter: blur(16px); display:flex; flex-direction:column; justify-content:space-between; gap: 20px; }
+        .hero-card-head { display:flex; align-items:center; justify-content:space-between; gap: 12px; font-size: 15px; font-weight: 900; }
+        .hero-metrics { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .hero-metric { border-radius: 16px; padding: 14px 10px; background: rgba(248,250,252,0.82); border: 1px solid rgba(15,23,42,0.06); text-align:center; }
+        .hero-metric strong { display:block; color: var(--primary); font-size: 24px; line-height: 1; margin-bottom: 7px; }
+        .hero-metric span { color: var(--muted); font-size: 12px; font-weight: 800; }
+        .hero-flow { display:flex; flex-direction:column; gap: 10px; }
+        .hero-flow div { display:flex; align-items:center; gap: 9px; padding: 11px 12px; border-radius: 14px; background: rgba(37,99,235,0.06); color: #334155; font-size: 13px; font-weight: 800; }
+        .hero-flow span { width: 22px; height:22px; border-radius: 8px; display:inline-flex; align-items:center; justify-content:center; background: var(--primary); color:#fff; font-size: 12px; }
+        .dashboard-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+        .dashboard-card { border-radius: var(--radius); background: rgba(255,255,255,0.86); border: 1px solid rgba(255,255,255,0.72); box-shadow: var(--shadow-soft); padding: 20px; }
+        .feature-card { min-height: 150px; }
+        .feature-icon { width: 36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius: 13px; color:#fff; background: linear-gradient(135deg, var(--primary), #14b8a6); font-size: 14px; font-weight: 900; margin-bottom: 14px; }
+        .feature-card h3 { margin:0 0 8px; font-size: 17px; }
+        .feature-card p { margin:0; color: #64748b; line-height: 1.75; font-size: 13px; }
         .page-head {
             border-radius: var(--radius);
-            padding: 10px 14px;
+            padding: 8px 12px;
             display:flex;
             align-items:center;
             justify-content:space-between;
-            gap: 12px;
-            min-height: 50px;
+            gap: 10px;
+            min-height: 44px;
             background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(246,250,255,0.88));
         }
         .page-titleline { display:flex; align-items:center; gap: 10px; min-width:0; white-space: nowrap; }
@@ -1007,11 +2404,18 @@
         .stat-value { font-size: 16px; font-weight: 900; line-height: 1; color: var(--primary); }
         .stat-label { font-size: 10px; color: var(--muted); margin-top: 3px; }
 
-        .content-grid { flex: 1; min-height:0; overflow:hidden; }
+        .content-grid { flex: 1; min-height:0; height: 100%; overflow:hidden; }
         .panel { border-radius: var(--radius); overflow:hidden; min-height: 0; background: rgba(255,255,255,0.92); }
+        .library-panel { height: 100%; display:flex; flex-direction:column; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,251,255,0.90)); }
+        .library-panel .el-card__body { flex: 1; min-height: 0; display:flex; flex-direction:column; overflow:hidden; }
         .panel-header { display:flex; align-items:center; justify-content:space-between; gap: 12px; }
+        .panel-header-library { min-height: 44px; }
+        .library-title-block { display:flex; align-items:center; gap: 11px; min-width: 0; }
+        .library-icon { width: 34px; height: 34px; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:#fff; font-size: 13px; font-weight: 900; background: linear-gradient(135deg, var(--primary), #14b8a6); box-shadow: 0 10px 20px rgba(37,99,235,0.20); }
+        .library-actions { display:flex; align-items:center; gap: 8px; flex-shrink: 0; }
+        .panel-titleline { display:flex; align-items:baseline; gap: 10px; min-width: 0; }
         .panel-header-vertical { align-items:flex-start; flex-direction: column; }
-        .panel-title { font-size: 16px; font-weight: 800; }
+        .panel-title { font-size: 17px; font-weight: 900; letter-spacing: -.2px; }
         .panel-subtitle { font-size: 12px; color: var(--muted); margin-top: 5px; }
         .setting-preview { color: #475569; }
         .novel-setting {
@@ -1026,15 +2430,53 @@
             border: 1px solid rgba(37, 99, 235, 0.08);
         }
         .novel-setting span { color: var(--primary); font-weight: 800; }
-        .table-wrap { height: calc(100vh - 240px); min-height: 340px; overflow:auto; border-radius: 0 0 var(--radius) var(--radius); }
+        .table-wrap { flex: 1; min-height: 0; height: auto; overflow:auto; border-radius: 0 0 var(--radius) var(--radius); }
         .table-wrap .el-table__row { cursor: pointer; }
 
         .panel-workbench { height: 100%; min-height: 500px; display: flex; flex-direction: column; margin-bottom: 0; }
-        .stage-pill { display:inline-flex; align-items:center; height: 32px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 800; border: 1px solid transparent; cursor: pointer; background: rgba(100,116,139,.12); color: #475569; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
+        .workbench-title-block { min-width: 220px; max-width: 100%; }
+        .workbench-toolbar { width: 100%; padding-top: 2px; overflow-x: auto; overflow-y: hidden; }
+        .toolbar-row { display:flex; align-items:center; gap: 8px; min-width: max-content; padding: 5px; border-radius: 16px; background: linear-gradient(135deg, rgba(37,99,235,0.06), rgba(20,184,166,0.05)); border: 1px solid rgba(15,23,42,0.055); }
+        .toolbar-pill,
+        .workbench-toolbar .el-button.toolbar-pill {
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            height: 32px;
+            min-height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(37,99,235,0.12);
+            background: rgba(255,255,255,0.76);
+            color: #334155;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            white-space: nowrap;
+            cursor: pointer;
+            box-shadow: none;
+            transition: transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
+        }
+        .toolbar-pill:hover,
+        .workbench-toolbar .el-button.toolbar-pill:hover { transform: translateY(-1px); background: rgba(37,99,235,0.10); color: var(--primary); box-shadow: 0 6px 14px rgba(37,99,235,0.10); }
+        .toolbar-pill.done { background: rgba(16,185,129,.13); color: #047857; border-color: rgba(16,185,129,.18); }
+        .toolbar-pill.pending { background: rgba(245,158,11,.14); color: #92400e; border-color: rgba(245,158,11,.20); }
+        .toolbar-pill.tone-rewrite { background: rgba(249,115,22,.14); color: #9a3412; border-color: rgba(249,115,22,.24); }
+        .toolbar-pill.tone-continue { background: rgba(59,130,246,.14); color: #1d4ed8; border-color: rgba(59,130,246,.24); }
+        .toolbar-pill.tone-queue { background: rgba(148,163,184,.20); color: #334155; border-color: rgba(100,116,139,.28); }
+        .toolbar-pill.tone-generic { background: rgba(14,165,233,.14); color: #0369a1; border-color: rgba(14,165,233,.24); }
+        .toolbar-pill.active { box-shadow: 0 0 0 2px rgba(37,99,235,.16); border-color: rgba(37,99,235,.35); background: rgba(37,99,235,.12); color: var(--primary); }
+        .toolbar-pill.danger { background: rgba(239,68,68,.12); color: #b91c1c; border-color: rgba(239,68,68,.20); }
+        .toolbar-pill.static { cursor: default; }
+        .toolbar-pill.static:hover { transform: none; box-shadow: none; }
+        .toolbar-row .el-button + .el-button { margin-left: 0; }
+        .stage-pill { display:inline-flex; align-items:center; height: 30px; padding: 0 11px; border-radius: 999px; font-size: 12px; font-weight: 800; border: 1px solid transparent; cursor: pointer; background: rgba(100,116,139,.12); color: #475569; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
         .stage-pill:hover { transform: translateY(-1px); }
         .stage-pill.done { background: rgba(16,185,129,.13); color: #047857; }
         .stage-pill.pending { background: rgba(245,158,11,.14); color: #92400e; }
         .stage-pill.danger { background: rgba(239,68,68,.12); color: #b91c1c; cursor: default; }
+        .stage-pill.danger.clickable { cursor: pointer; border-color: rgba(239,68,68,.20); }
+        .stage-pill.danger.clickable:hover { background: rgba(239,68,68,.18); box-shadow: 0 0 0 2px rgba(239,68,68,.12); }
         .stage-pill.active { box-shadow: 0 0 0 2px rgba(37,99,235,.16); border-color: rgba(37,99,235,.35); background: rgba(37,99,235,.12); color: var(--primary); }
         .progress-status { display:inline-flex; align-items:center; color: var(--muted); font-size: 12px; height: 32px; }
         .generation-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
@@ -1054,8 +2496,53 @@
         .stage-detail-content section + section { margin-top: 24px; }
         .stage-detail-content h4, .character-card h4 { margin: 0 0 10px; color: var(--primary); font-size: 15px; }
         .stage-detail-content p, .character-card p { margin:0; white-space: pre-wrap; }
+        .outline-rich { color: #243246; }
+        .outline-toc {
+            margin: 0 0 12px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: rgba(37,99,235,0.06);
+            border: 1px solid rgba(37,99,235,0.12);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .outline-toc-title { font-size: 12px; font-weight: 800; color: #1d4ed8; }
+        .outline-toc-item {
+            border: none;
+            background: transparent;
+            text-align: left;
+            padding: 2px 0;
+            color: #334155;
+            cursor: pointer;
+            line-height: 1.45;
+        }
+        .outline-toc-item.level-4 { padding-left: 10px; font-size: 13px; }
+        .outline-toc-item.level-5 { padding-left: 18px; font-size: 12px; color: #475569; }
+        .outline-toc-item:hover { color: #1d4ed8; text-decoration: underline; }
+        .outline-rich .outline-gap { height: 8px; }
+        .outline-rich .outline-divider { border: 0; border-top: 1px solid rgba(15,23,42,0.10); margin: 10px 0 14px; }
+        .outline-rich .outline-h2,
+        .outline-rich .outline-h3,
+        .outline-rich .outline-h4,
+        .outline-rich .outline-h5 { margin: 14px 0 8px; line-height: 1.4; color: #0f172a; }
+        .outline-rich .outline-h2 { font-size: 20px; color: #1d4ed8; }
+        .outline-rich .outline-h3 { font-size: 17px; color: #1e40af; }
+        .outline-rich .outline-h4 { font-size: 15px; }
+        .outline-rich .outline-p { margin: 0 0 8px; white-space: pre-wrap; text-indent: 0; }
+        .outline-rich .outline-ul,
+        .outline-rich .outline-ol { margin: 0 0 10px; padding-left: 20px; }
+        .outline-rich li { margin: 3px 0; }
+        .outline-table-wrap { overflow-x: auto; margin: 8px 0 12px; }
+        .outline-table { width: 100%; border-collapse: collapse; min-width: 520px; background: rgba(255,255,255,0.78); border-radius: 10px; overflow: hidden; }
+        .outline-table th,
+        .outline-table td { border: 1px solid rgba(15,23,42,0.08); padding: 8px 10px; text-align: left; vertical-align: top; line-height: 1.6; }
+        .outline-table th { background: rgba(37,99,235,0.08); color: #1e3a8a; font-weight: 800; }
         .character-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
         .character-card { padding: 16px; border-radius: 16px; border: 1px solid var(--line); background: rgba(248,250,252,.76); color: #334155; line-height: 1.75; }
+        .character-section + .character-section { margin-top: 8px; }
+        .character-section strong { display: block; margin-bottom: 2px; font-size: 12px; color: #1d4ed8; }
+        .character-section p { text-indent: 0; }
         .panel-workbench .el-card__body { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
         .workbench { display:grid; grid-template-columns: minmax(220px, 520px) 8px minmax(0, 1fr); gap: 0; flex: 1; height: 100%; min-height: 0; background: linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.30)); overflow:hidden; }
         .chapter-list { border-right: 1px solid var(--line); overflow-y:scroll; overflow-x:hidden; background: rgba(248,250,252,0.78); height: 100%; min-height: 0; padding: 8px; }
@@ -1069,7 +2556,9 @@
         .reader { min-width:0; padding: 12px; overflow-y:scroll; overflow-x:hidden; height: 100%; min-height: 0; background: radial-gradient(circle at top right, rgba(37,99,235,0.06), transparent 34%); }
         .chapter-item { display:flex; align-items:center; gap: 9px; width:100%; min-width:0; }
         .chapter-number { color: var(--primary); font-weight: 900; flex-shrink:0; }
-        .chapter-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .chapter-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex: 1; }
+        .chapter-regenerate-btn { flex-shrink: 0; opacity: .72; }
+        .chapter-list .el-menu-item:hover .chapter-regenerate-btn { opacity: 1; }
         .chapter-content {
             white-space: pre-wrap;
             line-height: 2.05;
@@ -1086,16 +2575,136 @@
             box-shadow: var(--shadow-soft);
         }
         .chapter-content h3 { margin: 0 0 20px; padding-bottom: 12px; border-bottom: 1px solid rgba(37,99,235,0.14); font-size: 21px; letter-spacing: -.2px; }
-        .chapter-setting {
-            margin: 0 0 18px;
-            padding: 12px 14px;
-            border-radius: 14px;
-            background: rgba(245, 158, 11, 0.09);
-            border: 1px solid rgba(245, 158, 11, 0.18);
-            color: #7c4a03;
-            line-height: 1.7;
+        .chapter-rewrite-hint {
+            margin: -8px 0 12px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            background: rgba(37, 99, 235, 0.08);
+            color: #1d4ed8;
+            font-size: 13px;
+            line-height: 1.5;
         }
-        .chapter-setting p { margin: 6px 0 0; text-indent: 0; }
+        .chapter-meta-shell {
+            margin: 0 0 18px;
+            padding: 10px 12px 12px;
+            border-radius: 16px;
+            background: linear-gradient(165deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.94) 100%);
+            border: 1px solid rgba(15, 23, 42, 0.07);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04), 0 1px 0 rgba(255, 255, 255, 0.8) inset;
+        }
+        .chapter-meta-row {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            align-items: stretch;
+        }
+        .chapter-meta-chip {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            background: rgba(255, 255, 255, 0.75);
+            color: rgba(30, 41, 59, 0.95);
+            font: inherit;
+            cursor: pointer;
+            text-align: left;
+            transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+        .chapter-meta-chip:hover {
+            border-color: rgba(37, 99, 235, 0.22);
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 1) inset, 0 4px 14px rgba(37, 99, 235, 0.06);
+        }
+        .chapter-meta-chip.is-expanded {
+            border-color: rgba(37, 99, 235, 0.28);
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.06), 0 4px 16px rgba(37, 99, 235, 0.08);
+        }
+        .chapter-meta-chip-main {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .chapter-meta-chip-label {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            text-transform: none;
+            color: rgba(15, 23, 42, 0.88);
+        }
+        .chapter-meta-chip-preview {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 12px;
+            line-height: 1.45;
+            color: rgba(71, 85, 105, 0.9);
+        }
+        .chapter-meta-chip-tail {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .chapter-meta-chip-action {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .chapter-meta-chip-caret {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            color: var(--primary);
+            font-size: 15px;
+            font-weight: 800;
+            line-height: 1;
+            transition: transform .22s ease;
+            transform: rotate(0deg);
+        }
+        .chapter-meta-chip-caret.expanded { transform: rotate(180deg); }
+        .chapter-meta-panel {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed rgba(15, 23, 42, 0.1);
+            animation: chapter-meta-panel-in .22s ease;
+        }
+        @keyframes chapter-meta-panel-in {
+            from { opacity: 0; transform: translateY(-3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .chapter-meta-panel + .chapter-meta-panel {
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+        .chapter-meta-panel-prose {
+            margin: 0;
+            text-indent: 0;
+            line-height: 1.75;
+            font-size: 14px;
+            color: rgba(30, 41, 59, 0.92);
+        }
+        .chapter-meta-blocks { display: flex; flex-direction: column; gap: 12px; }
+        .chapter-meta-block strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .02em;
+            color: rgba(15, 23, 42, 0.78);
+        }
+        .chapter-meta-block ul { margin: 0; padding-left: 20px; }
+        .chapter-meta-block li { margin: 4px 0; line-height: 1.55; font-size: 13px; color: rgba(51, 65, 85, 0.95); }
+        .chapter-meta-muted { margin: 0; font-size: 13px; color: rgba(100, 116, 139, 0.9); text-indent: 0; }
         .chapter-content p { margin: 0; text-indent: 2em; }
         .empty-panel { min-height: 100%; display:flex; align-items:center; justify-content:center; border-radius: 16px; background: rgba(255,255,255,0.45); }
         .empty-icon { font-size: 72px; }
@@ -1120,14 +2729,55 @@
         .log-entry { margin-bottom: 8px; padding: 8px 11px; border-radius: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.04); }
         .log-time { color: #a4b2df; margin-right: 10px; }
         .log-badge { font-weight:700; margin-right: 8px; }
+        .log-message.collapsed {
+            display: inline-block;
+            max-width: calc(100% - 210px);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: bottom;
+        }
+        .log-message-toggle {
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+        .log-message-toggle:not(.collapsed) {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .log-expand-btn {
+            margin-left: 8px;
+            padding: 0;
+            height: auto;
+            line-height: 1.2;
+            color: #93c5fd;
+            vertical-align: baseline;
+        }
         .log-info { color: #89ddff; } .log-success { color: #8be9a7; } .log-warning { color: #ffd479; } .log-error { color: #ff8f9f; }
         .log-empty { color: #9ba8cc; text-align:center; padding: 50px 0; }
 
         .dialog-footer { display:flex; justify-content:flex-end; gap: 10px; }
+        .failure-log-toolbar { display:flex; align-items:center; justify-content:space-between; gap: 12px; margin-bottom: 12px; color: #475569; font-size: 13px; font-weight: 700; }
+        .character-repair-toolbar { align-items: flex-start; flex-direction: column; }
+        .character-repair-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; }
+        .failure-log-panel { max-height: 460px; overflow:auto; border-radius: 14px; background: #111827; padding: 14px; color: #e5e7eb; }
+        .failure-log-entry { padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); margin-bottom: 10px; }
+        .failure-log-entry:last-child { margin-bottom: 0; }
+        .failure-log-meta { display:flex; align-items:center; justify-content:space-between; gap: 10px; margin-bottom: 8px; color: #cbd5e1; font-size: 12px; }
+        .failure-log-entry pre { margin:0; white-space:pre-wrap; word-break:break-word; font-family: Consolas, 'Courier New', monospace; line-height: 1.65; color: #fee2e2; }
+        .setting-dialog-content { max-height: 460px; overflow:auto; white-space:pre-wrap; word-break:break-word; line-height: 1.9; color: #243246; padding: 16px 18px; border-radius: 14px; background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.10); }
         .el-card { border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.72); box-shadow: var(--shadow); }
-        .el-card__header { background: rgba(248,250,252,0.82); border-bottom: 1px solid rgba(15,23,42,0.07); padding: 12px 14px; }
+        .el-card__header { background: linear-gradient(135deg, rgba(248,250,252,0.92), rgba(239,246,255,0.86)); border-bottom: 1px solid rgba(15,23,42,0.07); padding: 12px 14px; }
         .el-card__body { padding: 0; }
         .el-table { --el-table-header-bg-color: rgba(248, 250, 252, 0.88); --el-table-row-hover-bg-color: rgba(37, 99, 235, 0.06); }
+        .library-panel .el-table { --el-table-header-bg-color: rgba(239, 246, 255, 0.78); --el-table-row-hover-bg-color: rgba(37, 99, 235, 0.075); }
+        .library-panel .el-table__row { transition: transform .16s ease, box-shadow .16s ease; }
+        .library-panel .el-table__row:hover { box-shadow: inset 3px 0 0 var(--primary); }
         .el-table th.el-table__cell { font-weight: 800; color: #334155; }
         .el-table .el-table__cell { padding: 13px 0; }
         .el-button { border-radius: 11px; font-weight: 700; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
@@ -1135,6 +2785,46 @@
         .el-button--primary { background: linear-gradient(135deg, var(--primary), var(--primary-2)); border:none; box-shadow: 0 9px 18px rgba(37,99,235,0.22); }
         .el-tag { border-radius: 999px; font-weight: 800; }
         .el-dialog { border-radius: 20px; overflow: hidden; }
+        .unified-dialog .el-dialog__header {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(15,23,42,0.08);
+            background: linear-gradient(135deg, rgba(248,250,252,0.96), rgba(239,246,255,0.88));
+        }
+        .unified-dialog .el-dialog__title {
+            font-size: 15px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: -.2px;
+        }
+        .unified-dialog .el-dialog__body {
+            padding: 16px 18px 14px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,251,255,0.92));
+        }
+        .unified-dialog .el-dialog__footer {
+            padding: 10px 18px 16px;
+            border-top: 1px solid rgba(15,23,42,0.08);
+            background: rgba(248,250,252,0.8);
+        }
+        .unified-dialog .el-form-item { margin-bottom: 14px; }
+        .unified-dialog .el-form-item__label { color: #334155; font-weight: 800; }
+        .unified-dialog .el-input__wrapper,
+        .unified-dialog .el-textarea__inner,
+        .unified-dialog .el-input-number,
+        .unified-dialog .el-select .el-input__wrapper {
+            border-radius: 12px;
+        }
+        .unified-dialog .el-alert { border-radius: 12px; }
+        .unified-dialog .el-tabs__header { margin: 0 0 12px; }
+        .unified-dialog .el-tabs__item { font-weight: 700; }
+        .compact-dialog .el-dialog__header { padding: 10px 14px; }
+        .compact-dialog .el-dialog__title { font-size: 14px; }
+        .compact-dialog .el-dialog__body { padding: 12px 14px 10px; }
+        .compact-dialog .el-dialog__footer { padding: 8px 14px 12px; }
+        .compact-dialog .el-form-item { margin-bottom: 10px; }
+        .compact-dialog .el-form-item__label { font-size: 12px; }
+        .compact-dialog .el-tabs__header { margin-bottom: 8px; }
+        .compact-dialog .el-tabs__item { font-size: 13px; }
+        .compact-dialog .failure-log-toolbar { margin-bottom: 8px; }
         .el-input__wrapper { border-radius: 12px; }
 
         ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -1142,9 +2832,11 @@
         ::-webkit-scrollbar-track { background: rgba(90,112,200,0.10); border-radius: 999px; }
 
         @media (max-width: 1200px) {
-            .titlebar { grid-template-columns: minmax(170px, 220px) minmax(0, 1fr) auto; }
-            .titlebar-center .chip-muted { display: none; }
+            .titlebar { grid-template-columns: minmax(128px, 170px) minmax(0, 1fr) auto; }
+            .current-novel-chip { display: none; }
             .workbench { grid-template-columns: 260px 1fr; }
+            .dashboard-hero { grid-template-columns: 1fr; min-height: 0; }
+            .dashboard-grid { grid-template-columns: 1fr; }
             .page-head { flex-direction: column; align-items: flex-start; }
             .page-titleline { flex-wrap: wrap; white-space: normal; }
             .page-head p { white-space: normal; }
@@ -1163,23 +2855,30 @@
                 flex-wrap: wrap;
                 padding-right: 8px;
             }
+            .service-cluster { flex-wrap: wrap; }
             .titlebar-actions { grid-column: 2; grid-row: 1; }
             .workspace { flex-direction: column; }
             .sidebar { width:100%; }
             .sidebar.collapsed { width:100%; }
             .workbench { grid-template-columns: 1fr !important; height: auto; max-height: none; overflow: visible; }
             .panel-workbench { height: auto; min-height: 0; }
+            .library-panel { height: auto; min-height: 420px; }
             .generation-grid { grid-template-columns: 1fr; }
             .panel-workbench .el-card__body { overflow: visible; display: block; }
             .chapter-resizer { display: none; }
             .chapter-list { border-right:none; border-bottom: 1px solid var(--line); height: auto; max-height: 280px; overflow-y: auto; }
             .table-wrap, .log-panel { min-height: 320px; height:auto; }
+            .workbench-toolbar { justify-content:flex-start; }
             .content { overflow: visible; padding-right: 0; }
             .reader { height: auto; overflow-y: visible; }
             .chapter-content { padding: 24px; }
         }
         @media (max-width: 620px) {
             .app-shell { padding: 8px 10px 10px; }
+            .dashboard-hero { padding: 22px; }
+            .hero-copy h1 { font-size: 30px; }
+            .hero-metrics { grid-template-columns: 1fr; }
+            .hero-actions { flex-direction: column; align-items: stretch; }
             .titlebar { grid-template-columns: auto 1fr auto; gap: 8px; }
             .titlebar-text { display: none; }
             .titlebar-center { gap: 6px; }
