@@ -1,6 +1,6 @@
 {
   "name": "novel-agent-desktop",
-  "productName": "网页助手",
+  "productName": "AI小说创作台",
   "version": "1.0.0",
   "main": "main.js",
   "scripts": {
@@ -13,8 +13,11 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
+    "directories": {
+      "output": "release"
+    },
     "appId": "com.agent.novel",
-    "productName": "网页助手",
+    "productName": "AI小说创作台",
     "win": {
       "target": "nsis"
     }
