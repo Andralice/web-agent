@@ -1,7 +1,7 @@
 {
   "name": "novel-agent-desktop",
   "productName": "AI小说创作台",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -18,12 +18,19 @@
     },
     "appId": "com.agent.novel",
     "productName": "AI小说创作台",
+    "icon": "icons/icon.png",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "icons/icon.png"
+    },
+    "publish": {
+      "provider": "generic",
+      "url": "http://154.8.213.134:8080/updates"
     }
   },
   "dependencies": {
     "axios": "^1.15.2",
+    "electron-updater": "^6.3.9",
     "element-plus": "^2.13.7",
     "vue": "^3.5.33"
   }

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>中文创作台</title>
+    <link rel="icon" type="image/png" href="./icons/icon.png" />
     <link rel="stylesheet" href="./node_modules/element-plus/dist/index.css" />
 </head>
 <body>
@@ -80,6 +81,18 @@
                     </el-form>
                 </el-collapse-item>
                 <el-collapse-item title="情绪与带宽（narrative）" name="narrative">
+                    <el-alert type="info" :closable="false" show-icon class="narrative-nl-hint-alert">
+                        <template #title>联调说明（总表 2026-05-07）</template>
+                        服务端会将强度带宽、压抑度、亲昵/尴尬/强硬等<strong>数值翻译为自然语言</strong>后再写入模型提示词；此处仍可照常拖动滑条提交。<strong>想直观控文风</strong>时优先用下方「触发锚点」「节奏/材质/视角」「互动写法焦点」等文本字段。
+                    </el-alert>
+                    <details class="narrative-nl-examples">
+                        <summary>翻译示例（摘自 API 总表，仅供理解，以服务端为准）</summary>
+                        <ul class="chapter-meta-muted narrative-nl-examples-ul">
+                            <li><code>intensityMin≈0.20, intensityMax≈0.55</code> → 「本章情绪有收有放，如同好友拌嘴——可以呛、可以笑、可以短暂沉默，但不撕破脸」</li>
+                            <li><code>suppression≈0.48</code> → 「情感半收半放——嘴上不饶人但心里软…」</li>
+                            <li><code>affection≈0.55, awkwardness≈0.42</code> → 「有一定亲近感但还不够熟…偶尔别扭…」</li>
+                        </ul>
+                    </details>
                     <el-form label-position="left" label-width="132px" class="style-params-form style-params-form-compact">
                         <el-form-item>
                             <template #label>
@@ -268,22 +281,24 @@
                 <el-collapse-item v-if="castEnabled" title="全书默认登场 chapterCastDefault（§4.10）" name="chapterCastDefault">
                     <p class="chapter-meta-muted">全书默认「谁登场、焦点词」；本章可用续写/重生里的 chapterCast 覆盖。保存微参时会与服务器已有 JSON 深合并。角色名建议与档案主名一致。</p>
                     <el-form label-position="left" label-width="148px" class="style-params-form-compact">
-                        <el-form-item>
-                            <template #label>
-                                <span class="param-label-line">非名单角色侧写为主 <span class="param-help-wrap"><el-tooltip placement="top" :show-after="280" max-width="360"><template #content><div>对应 <code>restrictOthersToBackground</code>：true 时倾向不让配角抢戏。</div></template><span class="param-help-mark">?</span></el-tooltip></span></span>
-                            </template>
-                            <el-radio-group :model-value="castRestrictRadioKey(model.chapterCastDefault.restrictOthersToBackground)" class="style-param-inline-picks" size="small" @update:model-value="onCastDefaultRestrictChange">
-                                <el-radio-button label="unset">默认</el-radio-button>
-                                <el-radio-button label="yes">是</el-radio-button>
-                                <el-radio-button label="no">否</el-radio-button>
-                            </el-radio-group>
-                        </el-form-item>
-                        <div v-for="(row, idx) in model.chapterCastDefault.characters" :key="'ccd-' + idx" class="chapter-cast-editor-row">
-                            <el-input v-model="row.name" maxlength="80" clearable placeholder="角色名" style="flex: 1; min-width: 120px;" />
-                            <el-select v-model="row.focusTags" multiple filterable allow-create default-first-option collapse-tags collapse-tags-tooltip placeholder="焦点词（回车添加）" style="flex: 2; min-width: 160px;" />
-                            <el-button size="small" plain type="danger" @click="removeChapterCastDefaultRow(idx)">移除</el-button>
+                        <div class="chapter-cast-names-panel">
+                            <el-form-item>
+                                <template #label>
+                                    <span class="param-label-line">非名单角色侧写为主 <span class="param-help-wrap"><el-tooltip placement="top" :show-after="280" max-width="360"><template #content><div>对应 <code>restrictOthersToBackground</code>：true 时倾向不让配角抢戏。</div></template><span class="param-help-mark">?</span></el-tooltip></span></span>
+                                </template>
+                                <el-radio-group :model-value="castRestrictRadioKey(model.chapterCastDefault.restrictOthersToBackground)" class="style-param-inline-picks" size="small" @update:model-value="onCastDefaultRestrictChange">
+                                    <el-radio-button label="unset">默认</el-radio-button>
+                                    <el-radio-button label="yes">是</el-radio-button>
+                                    <el-radio-button label="no">否</el-radio-button>
+                                </el-radio-group>
+                            </el-form-item>
+                            <div v-for="(row, idx) in model.chapterCastDefault.characters" :key="'ccd-' + idx" class="chapter-cast-editor-row">
+                                <el-input v-model="row.name" maxlength="80" clearable placeholder="角色名" style="flex: 1; min-width: 120px;" />
+                                <el-select v-model="row.focusTags" multiple filterable allow-create default-first-option collapse-tags collapse-tags-tooltip placeholder="焦点词（回车添加）" style="flex: 2; min-width: 160px;" />
+                                <el-button size="small" plain type="danger" @click="removeChapterCastDefaultRow(idx)">移除</el-button>
+                            </div>
+                            <el-button size="small" type="primary" plain class="chapter-cast-add-row-btn" @click="addChapterCastDefaultRow">添加登场角色</el-button>
                         </div>
-                        <el-button size="small" type="primary" plain @click="addChapterCastDefaultRow">添加登场角色</el-button>
                     </el-form>
                 </el-collapse-item>
                 <el-collapse-item title="文笔 · 信息揭示 informationFlow" name="infoflow">
@@ -429,13 +444,27 @@
                             </div>
                             <div class="auth-cluster" :title="authClusterHint">
                                 <template v-if="authSession.securityEnabled">
-                                    <el-tag v-if="authSession.authenticated" size="small" type="success" effect="plain">管理员</el-tag>
+                                    <el-tag v-if="authSession.authenticated && isAdminRole" size="small" type="success" effect="plain">管理员</el-tag>
+                                    <el-tag v-else-if="authSession.authenticated" size="small" type="primary" effect="plain">已登录</el-tag>
                                     <el-tag v-else size="small" type="info" effect="plain">访客</el-tag>
+                                    <el-tooltip v-if="authSession.authenticated && authSession.username" :content="authLoginGeoHint" placement="bottom" :show-after="220">
+                                        <span class="auth-user-chip">{{ authSession.username }}</span>
+                                    </el-tooltip>
                                 </template>
                                 <span v-else class="auth-hint-soft">书库开放</span>
-                                <el-button v-if="!authSession.authenticated" size="small" plain @click="openLoginDialog">管理员登录</el-button>
+                                <el-button v-if="!authSession.authenticated" size="small" plain @click="openLoginDialog">登录 / 注册</el-button>
+                                <el-button v-if="authSession.securityEnabled && isAdminRole" size="small" plain @click="openAuthUsersDialog">用户列表</el-button>
                                 <el-button v-if="authSession.authenticated || authTokenPresent" size="small" plain @click="logoutAdmin">退出</el-button>
                             </div>
+                            <div class="update-cluster" v-if="updateStatus.status !== 'unconfigured'">
+                                <el-tooltip v-if="updateStatus.status === 'checking'" content="正在检查更新…" placement="bottom"><el-tag size="small" type="info" effect="plain">检查中…</el-tag></el-tooltip>
+                                <el-tooltip v-else-if="updateStatus.status === 'available'" :content="'发现新版本 ' + updateStatus.version + '，正在下载…'" placement="bottom"><el-tag size="small" type="warning" effect="plain">下载中</el-tag></el-tooltip>
+                                <el-tooltip v-else-if="updateStatus.status === 'downloading'" :content="'下载中 ' + updateStatus.percent + '%'" placement="bottom"><el-tag size="small" type="warning" effect="plain">下载 {{ updateStatus.percent }}%</el-tag></el-tooltip>
+                                <el-tooltip v-else-if="updateStatus.status === 'downloaded'" :content="'新版本 ' + updateStatus.version + ' 已就绪'" placement="bottom"><el-button size="small" type="success" @click="quitAndInstall">重启安装</el-button></el-tooltip>
+                                <el-tooltip v-else-if="updateStatus.status === 'error'" :content="'更新出错: ' + updateStatus.message + '（点击重试）'" placement="bottom"><el-tag size="small" type="danger" effect="plain" style="cursor:pointer;" @click="checkForUpdate">更新失败</el-tag></el-tooltip>
+                                <el-button v-else size="small" plain @click="checkForUpdate">检查更新</el-button>
+                            </div>
+                            <el-button size="small" plain @click="featureGuideVisible = true" class="feature-guide-btn">功能列表</el-button>
                         </div>
                         <div class="titlebar-actions">
                             <button class="window-btn" @click="minimizeWindow" title="最小化">—</button>
@@ -639,17 +668,17 @@
                                                                 <span v-if="novelChapterCountFromRow(row)" class="lnc-chip">{{ novelChapterCountFromRow(row) }} 章</span>
                                                                 <span v-if="novelChapterCountFromRow(row)" class="lnc-chip lnc-chip-soft">约 {{ formatDashboardWords(estimateWordsFromChapters(novelChapterCountFromRow(row))) }}</span>
                                                                 <span v-if="row.serializationPlatform" class="lnc-chip lnc-chip-platform">{{ row.serializationPlatform }}</span>
-                                                                <span v-if="authSession.securityEnabled" class="lnc-chip" :class="row.libraryPublic === false ? 'lnc-chip-private' : 'lnc-chip-public'">{{ row.libraryPublic === false ? '仅管理员' : '公共' }}</span>
+                                                                <span v-if="authSession.securityEnabled" class="lnc-chip" :class="row.libraryPublic === false ? 'lnc-chip-private' : 'lnc-chip-public'">{{ row.libraryPublic === false ? '非公开' : '公共' }}</span>
                                                             </div>
-                                                            <div v-if="authSession.securityEnabled && authSession.authenticated" class="lnc-visibility" @click.stop>
-                                                                <span class="lnc-vis-label">访客可见</span>
+                                                            <div v-if="authSession.securityEnabled && isAdminRole" class="lnc-visibility" @click.stop>
+                                                                <span class="lnc-vis-label">书库公开</span>
                                                                 <el-switch
                                                                     size="small"
                                                                     :model-value="row.libraryPublic !== false"
                                                                     @change="(v) => updateNovelLibraryVisibility(row, v)"
                                                                 />
                                                             </div>
-                                                            <el-button link type="danger" size="small" class="lnc-del" @click.stop="handleDeleteNovel(row)">删除</el-button>
+                                                            <el-button v-if="canDeleteNovel(row)" link type="danger" size="small" class="lnc-del" @click.stop="handleDeleteNovel(row)">删除</el-button>
                                                         </footer>
                                                     </article>
                                                 </div>
@@ -687,17 +716,17 @@
                                                                 <span v-if="novelChapterCountFromRow(row)" class="lnc-chip">{{ novelChapterCountFromRow(row) }} 章</span>
                                                                 <span v-if="novelChapterCountFromRow(row)" class="lnc-chip lnc-chip-soft">约 {{ formatDashboardWords(estimateWordsFromChapters(novelChapterCountFromRow(row))) }}</span>
                                                                 <span v-if="row.serializationPlatform" class="lnc-chip lnc-chip-platform">{{ row.serializationPlatform }}</span>
-                                                                <span v-if="authSession.securityEnabled" class="lnc-chip" :class="row.libraryPublic === false ? 'lnc-chip-private' : 'lnc-chip-public'">{{ row.libraryPublic === false ? '仅管理员' : '公共' }}</span>
+                                                                <span v-if="authSession.securityEnabled" class="lnc-chip" :class="row.libraryPublic === false ? 'lnc-chip-private' : 'lnc-chip-public'">{{ row.libraryPublic === false ? '非公开' : '公共' }}</span>
                                                             </div>
-                                                            <div v-if="authSession.securityEnabled && authSession.authenticated" class="lnc-visibility lnr-vis">
-                                                                <span class="lnc-vis-label">访客可见</span>
+                                                            <div v-if="authSession.securityEnabled && isAdminRole" class="lnc-visibility lnr-vis">
+                                                                <span class="lnc-vis-label">书库公开</span>
                                                                 <el-switch
                                                                     size="small"
                                                                     :model-value="row.libraryPublic !== false"
                                                                     @change="(v) => updateNovelLibraryVisibility(row, v)"
                                                                 />
                                                             </div>
-                                                            <el-button link type="danger" size="small" class="lnc-del" @click.stop="handleDeleteNovel(row)">删除</el-button>
+                                                            <el-button v-if="canDeleteNovel(row)" link type="danger" size="small" class="lnc-del" @click.stop="handleDeleteNovel(row)">删除</el-button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -728,7 +757,7 @@
                                                                 </template>
                                                                 <span v-else class="wdp-empty-inline">未填写平台 / 说明</span>
                                                             </div>
-                                                            <el-button type="primary" link size="small" class="wdp-edit-btn-inline" @click="openStoryInfoDialog('bookMeta')">编辑</el-button>
+                                                            <el-button type="primary" plain size="small" class="btn-soft-gradient-primary wdp-edit-btn-inline" @click="openStoryInfoDialog('bookMeta')">编辑</el-button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -864,11 +893,27 @@
                                                             </div>
                                                         </template>
                                                     </div>
-                                                    <div class="chapter-prose" lang="zh-Hans">
+                                                    <div v-if="!chapterContentEditing" class="chapter-prose" lang="zh-Hans">
                                                         <template v-if="chapterParagraphs.length">
                                                             <p v-for="(para, pIdx) in chapterParagraphs" :key="pIdx" class="chapter-prose-p">{{ para }}</p>
                                                         </template>
                                                         <p v-else class="chapter-prose-p chapter-prose-empty">本章暂无正文</p>
+                                                    </div>
+                                                    <div v-else class="chapter-edit-panel">
+                                                        <p class="chapter-meta-muted">手动保存正文（§4.11）：每次保存会为当前稿存档一次；可选填写修改说明。</p>
+                                                        <el-input v-model="chapterEditDraft.title" placeholder="标题（可选，留空保留原标题）" maxlength="200" show-word-limit clearable />
+                                                        <el-input v-model="chapterEditDraft.content" type="textarea" :rows="18" placeholder="完整正文" class="chapter-edit-textarea" />
+                                                        <el-input v-model="chapterEditDraft.editNote" placeholder="修改说明（可选）" maxlength="500" show-word-limit clearable />
+                                                        <div class="chapter-edit-actions">
+                                                            <el-button type="primary" @click="submitChapterContentSave" :loading="actions.chapterContentSaving">保存到服务器</el-button>
+                                                            <el-button @click="cancelChapterContentEdit">取消</el-button>
+                                                        </div>
+                                                    </div>
+                                                    <div class="chapter-manual-edit-bar">
+                                                        <template v-if="!chapterContentEditing">
+                                                            <el-button size="small" type="primary" plain class="btn-soft-gradient-primary" @click="startChapterContentEdit" :disabled="!currentChapter || !!currentChapterRewriteStatus">编辑正文</el-button>
+                                                            <el-button size="small" plain class="btn-soft-gradient-secondary" @click="openChapterRevisionDialog" :disabled="!currentChapter">章节版本历史</el-button>
+                                                        </template>
                                                     </div>
                                                 </div>
                                                 <div v-else class="empty-panel">
@@ -916,7 +961,10 @@
                                                 </div>
                                                 <div v-if="characters.length" class="character-grid">
                                                     <div v-for="(character, index) in characters" :key="character.id || index" class="character-card">
-                                                        <h4>{{ character.name || character.characterName || '角色' + (index + 1) }}</h4>
+                                                        <div class="character-card-head">
+                                                            <h4>{{ character.name || character.characterName || '角色' + (index + 1) }}</h4>
+                                                            <el-button type="primary" plain size="small" class="btn-soft-gradient-primary" @click.stop="openCharacterEditDialog(character)">编辑设定</el-button>
+                                                        </div>
                                                         <template v-if="getCharacterSections(character).length">
                                                             <div v-for="(section, sectionIdx) in getCharacterSections(character)" :key="section.label + sectionIdx" class="character-section">
                                                                 <strong>{{ section.label }}</strong>
@@ -1105,19 +1153,113 @@
                         </template>
                     </el-dialog>
 
-                    <el-dialog v-model="loginDialogVisible" title="管理员登录" width="420px" align-center :close-on-click-modal="false">
-                        <p class="chapter-meta-muted" style="margin: 0 0 12px;">仅当服务器开启了「书库登录」时需要在此登录管理员账号；若未开启，登录会提示未启用，可忽略本窗口。</p>
-                        <el-form :model="loginForm" label-width="72px" @submit.prevent="submitAdminLogin">
+                    <el-dialog v-model="loginDialogVisible" title="登录 / 注册" width="440px" align-center :close-on-click-modal="false">
+                        <p class="chapter-meta-muted" style="margin: 0 0 12px;">总表 §0（2026-05-08）：支持<strong>管理员</strong>与<strong>普通用户</strong>；注册仅创建 USER。未启用安全时 /me 可能显示未登录，可忽略。</p>
+                        <el-radio-group v-model="loginDialogMode" size="small" class="login-mode-switch">
+                            <el-radio-button label="login">登录</el-radio-button>
+                            <el-radio-button label="register">注册</el-radio-button>
+                        </el-radio-group>
+                        <el-form :model="loginForm" label-width="72px" style="margin-top:12px;" @submit.prevent="loginDialogMode === 'register' ? submitRegister() : submitAdminLogin()">
                             <el-form-item label="用户名">
-                                <el-input v-model="loginForm.username" autocomplete="username" clearable placeholder="管理员账号" />
+                                <el-input v-model="loginForm.username" autocomplete="username" clearable placeholder="用户名" />
                             </el-form-item>
                             <el-form-item label="密码">
-                                <el-input v-model="loginForm.password" type="password" autocomplete="current-password" show-password placeholder="密码" @keyup.enter="submitAdminLogin" />
+                                <el-input v-model="loginForm.password" type="password" autocomplete="current-password" show-password placeholder="密码至少 4 位（注册）" @keyup.enter="loginDialogMode === 'register' ? submitRegister() : submitAdminLogin()" />
                             </el-form-item>
                         </el-form>
                         <template #footer>
                             <el-button @click="loginDialogVisible = false">取消</el-button>
-                            <el-button type="primary" :loading="actions.adminLoggingIn" @click="submitAdminLogin">登录</el-button>
+                            <el-button v-if="loginDialogMode === 'register'" type="primary" :loading="actions.adminLoggingIn" @click="submitRegister">注册</el-button>
+                            <el-button v-else type="primary" :loading="actions.adminLoggingIn" @click="submitAdminLogin">登录</el-button>
+                        </template>
+                    </el-dialog>
+
+                    <el-dialog v-model="chapterRevisionDialogVisible" title="章节版本历史" width="720px" align-center :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-table :data="chapterRevisionRows" v-loading="chapterRevisionLoading" stripe max-height="380" empty-text="暂无版本记录">
+                            <el-table-column prop="revisionNumber" label="#" width="56" />
+                            <el-table-column prop="editNote" label="说明" min-width="140" show-overflow-tooltip />
+                            <el-table-column prop="contentLength" label="字数" width="72" />
+                            <el-table-column prop="createTime" label="时间" width="168" />
+                            <el-table-column label="操作" width="160" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button link type="primary" size="small" @click="openChapterRevisionDetail(row.id)">查看</el-button>
+                                    <el-button link type="warning" size="small" @click="confirmRestoreChapterRevision(row.id)">恢复</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <template #footer><el-button type="primary" @click="chapterRevisionDialogVisible = false">关闭</el-button></template>
+                    </el-dialog>
+                    <el-dialog v-model="chapterRevisionDetailVisible" title="版本正文（只读）" width="640px" align-center append-to-body>
+                        <p v-if="chapterRevisionDetail" class="chapter-meta-muted">revision #{{ chapterRevisionDetail.revisionNumber }} · {{ chapterRevisionDetail.title || '' }}</p>
+                        <pre v-if="chapterRevisionDetail" class="narrative-artifact-pre chapter-revision-detail-pre">{{ chapterRevisionDetail.content || '' }}</pre>
+                        <template #footer><el-button @click="chapterRevisionDetailVisible = false">关闭</el-button></template>
+                    </el-dialog>
+
+                    <el-dialog v-model="outlineRevisionDialogVisible" title="大纲版本历史" width="720px" align-center :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-table :data="outlineRevisionRows" v-loading="outlineRevisionLoading" stripe max-height="380" empty-text="暂无版本记录">
+                            <el-table-column prop="revisionNumber" label="#" width="56" />
+                            <el-table-column prop="editNote" label="说明" min-width="140" show-overflow-tooltip />
+                            <el-table-column prop="contentLength" label="长度" width="72" />
+                            <el-table-column prop="createTime" label="时间" width="168" />
+                            <el-table-column label="操作" width="160" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button link type="primary" size="small" @click="openOutlineRevisionDetail(row.id)">查看</el-button>
+                                    <el-button link type="warning" size="small" @click="confirmRestoreOutlineRevision(row.id)">恢复</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <template #footer><el-button type="primary" @click="outlineRevisionDialogVisible = false">关闭</el-button></template>
+                    </el-dialog>
+                    <el-dialog v-model="outlineRevisionDetailVisible" title="大纲版本内容（只读）" width="640px" align-center append-to-body>
+                        <pre v-if="outlineRevisionDetail" class="narrative-artifact-pre chapter-revision-detail-pre">{{ outlineRevisionDetail.content || '' }}</pre>
+                        <template #footer><el-button @click="outlineRevisionDetailVisible = false">关闭</el-button></template>
+                    </el-dialog>
+
+                    <el-dialog v-model="characterEditDialogVisible" :title="'编辑角色设定 · ' + (characterEditForm.displayName || '')" width="720px" align-center :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <p class="chapter-meta-muted">§4.13：路径中的 id 为列表项 <code>CharacterProfile.id</code>（库主键）；<code>profileContent</code> 为 JSON 字符串。可选 <code>title</code> 映射角色显示名。</p>
+                        <el-input v-model="characterEditForm.title" placeholder="可选：保存时的角色名 title" maxlength="120" clearable show-word-limit style="margin-bottom:8px;" />
+                        <el-input v-model="characterEditForm.content" type="textarea" :rows="16" class="chapter-edit-textarea" placeholder="{ ... }" />
+                        <el-input v-model="characterEditForm.editNote" placeholder="修改说明（可选）" maxlength="500" show-word-limit clearable style="margin-top:8px;" />
+                        <div class="chapter-edit-actions" style="margin-top:10px;">
+                            <el-button type="primary" @click="submitCharacterContentSave" :loading="actions.characterContentSaving">保存</el-button>
+                            <el-button plain class="btn-soft-gradient-secondary" @click="openCharacterRevisionDialogFromEdit" :disabled="!characterEditForm.id">版本历史</el-button>
+                        </div>
+                        <template #footer><el-button @click="characterEditDialogVisible = false">关闭</el-button></template>
+                    </el-dialog>
+                    <el-dialog v-model="characterRevisionDialogVisible" title="角色设定版本历史" width="720px" align-center append-to-body :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <el-table :data="characterRevisionRows" v-loading="characterRevisionLoading" stripe max-height="380" empty-text="暂无版本记录">
+                            <el-table-column prop="revisionNumber" label="#" width="56" />
+                            <el-table-column prop="characterName" label="角色" width="100" show-overflow-tooltip />
+                            <el-table-column prop="editNote" label="说明" min-width="120" show-overflow-tooltip />
+                            <el-table-column prop="createTime" label="时间" width="168" />
+                            <el-table-column label="操作" width="160" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button link type="primary" size="small" @click="openCharacterRevisionDetail(row.id)">查看</el-button>
+                                    <el-button link type="warning" size="small" @click="confirmRestoreCharacterRevision(row.id)">恢复</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        <template #footer><el-button type="primary" @click="characterRevisionDialogVisible = false">关闭</el-button></template>
+                    </el-dialog>
+                    <el-dialog v-model="characterRevisionDetailVisible" title="角色版本 JSON（只读）" width="640px" align-center append-to-body>
+                        <pre v-if="characterRevisionDetail" class="narrative-artifact-pre chapter-revision-detail-pre">{{ characterRevisionDetail.content || '' }}</pre>
+                        <template #footer><el-button @click="characterRevisionDetailVisible = false">关闭</el-button></template>
+                    </el-dialog>
+
+                    <el-dialog v-model="authUsersDialogVisible" title="用户列表（管理员）" width="880px" align-center :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <p class="chapter-meta-muted" style="margin:0 0 10px;">GET <code>/api/auth/users</code> · 总表 §0 · 映射创作用户 ID 时可对照「用户名」。</p>
+                        <el-table :data="authUsersList" v-loading="loading.authUsers" stripe max-height="420" empty-text="暂无数据或无权限">
+                            <el-table-column prop="id" label="ID" width="72" />
+                            <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip />
+                            <el-table-column prop="role" label="角色" width="100" />
+                            <el-table-column prop="lastLoginIp" label="最近登录 IP" width="130" show-overflow-tooltip />
+                            <el-table-column prop="lastLoginLocation" label="归属地" min-width="120" show-overflow-tooltip />
+                            <el-table-column prop="lastLoginTime" label="最近登录时间" width="172" />
+                            <el-table-column prop="createTime" label="创建时间" width="172" />
+                        </el-table>
+                        <template #footer>
+                            <el-button plain @click="fetchAuthUsers" :loading="loading.authUsers">刷新</el-button>
+                            <el-button type="primary" @click="authUsersDialogVisible = false">关闭</el-button>
                         </template>
                     </el-dialog>
 
@@ -1128,7 +1270,7 @@
                                     <div class="book-meta-preview-head">
                                         <strong>书籍备注</strong>
                                         <span class="chapter-meta-muted">（连载平台 / 创作说明，仅展示）</span>
-                                        <el-button link type="primary" size="small" @click="goToBookMetaTab">去编辑</el-button>
+                                        <el-button type="primary" plain size="small" class="btn-soft-gradient-primary" @click="goToBookMetaTab">去编辑</el-button>
                                     </div>
                                     <div class="book-meta-preview-body">
                                         <p><span class="book-meta-preview-k">连载平台</span>{{ bookMetaDisplayPlatform || '未填写' }}</p>
@@ -1167,6 +1309,20 @@
                                 </div>
                             </el-tab-pane>
                             <el-tab-pane label="大纲" name="outline">
+                                <el-divider content-position="left">手动编辑大纲（§4.12）</el-divider>
+                                <p class="chapter-meta-muted">PUT 保存会自动将当前 Markdown 存档；与下方「重新生成」不同，不会调用模型。</p>
+                                <div class="outline-manual-actions outline-manual-actions-top">
+                                    <el-button size="small" type="primary" plain class="btn-soft-gradient-primary" @click="startOutlineManualEdit" :disabled="!currentNovel">编辑 Markdown</el-button>
+                                    <el-button size="small" plain class="btn-soft-gradient-secondary" @click="openOutlineRevisionDialog" :disabled="!currentNovel">大纲版本历史</el-button>
+                                </div>
+                                <div v-if="outlineManualEditing" class="outline-manual-edit-panel outline-manual-edit-panel-top">
+                                    <el-input v-model="outlineEditForm.content" type="textarea" :rows="14" placeholder="大纲 Markdown 全文" />
+                                    <el-input v-model="outlineEditForm.editNote" placeholder="修改说明（可选）" maxlength="500" show-word-limit clearable />
+                                    <div class="chapter-edit-actions">
+                                        <el-button type="primary" @click="submitOutlineContentSave" :loading="actions.outlineContentSaving">保存大纲</el-button>
+                                        <el-button @click="cancelOutlineManualEdit">取消</el-button>
+                                    </div>
+                                </div>
                                 <el-collapse v-model="outlineRegenerateCollapseNames" class="outline-regenerate-collapse">
                                     <el-collapse-item name="regenerate">
                                         <template #title>
@@ -1200,6 +1356,19 @@
                                     </el-collapse-item>
                                 </el-collapse>
                                 <el-divider content-position="left">大纲阅读 · 当前正文</el-divider>
+                                <template v-if="frontendRuntime.loaded">
+                                    <p v-if="frontendRuntime.outlineGraphPhaseMaxTokens != null" class="chapter-meta-muted outline-runtime-line">
+                                        运行时配置：图谱阶段模型输出上限约 <strong>{{ frontendRuntime.outlineGraphPhaseMaxTokens }}</strong> tokens（<code>outlineGraphPhaseMaxTokens</code>）。
+                                    </p>
+                                    <el-alert
+                                        v-if="frontendRuntime.outlineTwoPhaseGraphEnabled === false"
+                                        title="当前部署未开启两阶段大纲图谱（outlineTwoPhaseGraphEnabled=false）"
+                                        type="warning"
+                                        :closable="false"
+                                        show-icon
+                                        class="outline-two-phase-off-alert"
+                                        description="通常不会有 outlineGraphJson；Markdown 大纲仍可能有。" />
+                                </template>
                                 <div v-if="outlineInfo.ready || outlineInfo.description" class="stage-detail-content">
                                     <section v-if="outlineInfo.description">
                                         <h4>小说大纲</h4>
@@ -1254,7 +1423,10 @@
                                 </div>
                                 <div v-if="characters.length" class="character-grid">
                                     <div v-for="(character, index) in characters" :key="character.id || index" class="character-card">
-                                        <h4>{{ character.name || character.characterName || '角色' + (index + 1) }}</h4>
+                                        <div class="character-card-head">
+                                            <h4>{{ character.name || character.characterName || '角色' + (index + 1) }}</h4>
+                                            <el-button type="primary" plain size="small" class="btn-soft-gradient-primary" @click.stop="openCharacterEditDialog(character)">编辑设定</el-button>
+                                        </div>
                                         <template v-if="getCharacterSections(character).length">
                                             <div v-for="(section, sectionIdx) in getCharacterSections(character)" :key="section.label + sectionIdx" class="character-section">
                                                 <strong>{{ section.label }}</strong>
@@ -1527,23 +1699,28 @@
                                     show-word-limit
                                     placeholder="可选。本次区间重生的额外生成要求。" />
                             </el-form-item>
-                            <template v-if="!frontendRuntime.loaded || frontendRuntime.characterCastEnabled">
+                            <template v-if="showChapterCastRequestForms">
                                 <el-divider content-position="left">本章登场调度（可选）</el-divider>
                                 <p class="chapter-meta-muted">与续写相同：非空时合并为 generationSetting JSON（notes + chapterCast）。</p>
-                                <el-form-item label-width="100px">
-                                    <template #label>配角侧写为主</template>
-                                    <el-radio-group :model-value="castRestrictUiKey(rangeRegenerateForm.chapterCast.restrictOthersToBackground)" size="small" @update:model-value="(k) => { rangeRegenerateForm.chapterCast.restrictOthersToBackground = castRestrictFromUiKey(k); }">
-                                        <el-radio-button label="u">默认</el-radio-button>
-                                        <el-radio-button label="y">是</el-radio-button>
-                                        <el-radio-button label="n">否</el-radio-button>
-                                    </el-radio-group>
-                                </el-form-item>
-                                <div v-for="(rw, ridx) in rangeRegenerateForm.chapterCast.characters" :key="'rc-' + ridx" class="chapter-cast-inline-row">
-                                    <el-input v-model="rw.name" placeholder="角色名" maxlength="80" clearable style="flex:1;min-width:100px;" />
-                                    <el-select v-model="rw.focusTags" multiple filterable allow-create default-first-option collapse-tags placeholder="焦点词" style="flex:2;min-width:140px;" />
-                                    <el-button size="small" plain type="danger" @click="rangeRegenerateForm.chapterCast.characters.splice(ridx, 1)">删</el-button>
+                                <p v-if="frontendRuntime.loaded && !frontendRuntime.characterStateInjectEnabled" class="chapter-meta-muted">
+                                    运行时未开启角色状态注入（<code>characterStateInjectEnabled=false</code>）：生成上下文通常<strong>不会</strong>附带库内 <code>state_json</code> 摘要（总表 §5）。
+                                </p>
+                                <div class="chapter-cast-names-panel">
+                                    <el-form-item label-width="100px">
+                                        <template #label>配角侧写为主</template>
+                                        <el-radio-group :model-value="castRestrictUiKey(rangeRegenerateForm.chapterCast.restrictOthersToBackground)" size="small" @update:model-value="(k) => { rangeRegenerateForm.chapterCast.restrictOthersToBackground = castRestrictFromUiKey(k); }">
+                                            <el-radio-button label="u">默认</el-radio-button>
+                                            <el-radio-button label="y">是</el-radio-button>
+                                            <el-radio-button label="n">否</el-radio-button>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <div v-for="(rw, ridx) in rangeRegenerateForm.chapterCast.characters" :key="'rc-' + ridx" class="chapter-cast-inline-row">
+                                        <el-input v-model="rw.name" placeholder="角色名" maxlength="80" clearable style="flex:1;min-width:100px;" />
+                                        <el-select v-model="rw.focusTags" multiple filterable allow-create default-first-option collapse-tags placeholder="焦点词" style="flex:2;min-width:140px;" />
+                                        <el-button size="small" plain type="danger" @click="rangeRegenerateForm.chapterCast.characters.splice(ridx, 1)">删</el-button>
+                                    </div>
+                                    <el-button size="small" plain type="primary" class="chapter-cast-add-row-btn" @click="rangeRegenerateForm.chapterCast.characters.push({ name: '', focusTags: [] })">添加登场角色</el-button>
                                 </div>
-                                <el-button size="small" plain type="primary" @click="rangeRegenerateForm.chapterCast.characters.push({ name: '', focusTags: [] })" style="margin-bottom:8px;">添加登场角色</el-button>
                             </template>
                             <el-alert title="后端支持起止章自动归一化；若区间与正在重生任务重叠会被拒绝" type="warning" :closable="false" show-icon />
                         </el-form>
@@ -1630,23 +1807,28 @@
                                     show-word-limit
                                     placeholder="例如：这一章重点写主角第一次失控，反派暂时占上风，结尾留下妹妹的线索。" />
                             </el-form-item>
-                            <template v-if="!frontendRuntime.loaded || frontendRuntime.characterCastEnabled">
+                            <template v-if="showChapterCastRequestForms">
                                 <el-divider content-position="left">本章登场调度（可选，§4.10）</el-divider>
                                 <p class="chapter-meta-muted">填写后将以 JSON 合并进请求的 generationSetting（含 notes / chapterCast）；与不填时「纯文本设定」二选一逻辑见总表。</p>
-                                <el-form-item label-width="100px">
-                                    <template #label>配角侧写为主</template>
-                                    <el-radio-group :model-value="castRestrictUiKey(continueForm.chapterCast.restrictOthersToBackground)" size="small" @update:model-value="(k) => { continueForm.chapterCast.restrictOthersToBackground = castRestrictFromUiKey(k); }">
-                                        <el-radio-button label="u">默认</el-radio-button>
-                                        <el-radio-button label="y">是</el-radio-button>
-                                        <el-radio-button label="n">否</el-radio-button>
-                                    </el-radio-group>
-                                </el-form-item>
-                                <div v-for="(crow, cidx) in continueForm.chapterCast.characters" :key="'cc-' + cidx" class="chapter-cast-inline-row">
-                                    <el-input v-model="crow.name" placeholder="角色名" maxlength="80" clearable style="flex:1;min-width:100px;" />
-                                    <el-select v-model="crow.focusTags" multiple filterable allow-create default-first-option collapse-tags placeholder="焦点词" style="flex:2;min-width:140px;" />
-                                    <el-button size="small" plain type="danger" @click="continueForm.chapterCast.characters.splice(cidx, 1)">删</el-button>
+                                <p v-if="frontendRuntime.loaded && !frontendRuntime.characterStateInjectEnabled" class="chapter-meta-muted">
+                                    运行时未开启角色状态注入（<code>characterStateInjectEnabled=false</code>）：生成上下文通常<strong>不会</strong>附带库内 <code>state_json</code> 摘要（总表 §5）。
+                                </p>
+                                <div class="chapter-cast-names-panel">
+                                    <el-form-item label-width="100px">
+                                        <template #label>配角侧写为主</template>
+                                        <el-radio-group :model-value="castRestrictUiKey(continueForm.chapterCast.restrictOthersToBackground)" size="small" @update:model-value="(k) => { continueForm.chapterCast.restrictOthersToBackground = castRestrictFromUiKey(k); }">
+                                            <el-radio-button label="u">默认</el-radio-button>
+                                            <el-radio-button label="y">是</el-radio-button>
+                                            <el-radio-button label="n">否</el-radio-button>
+                                        </el-radio-group>
+                                    </el-form-item>
+                                    <div v-for="(crow, cidx) in continueForm.chapterCast.characters" :key="'cc-' + cidx" class="chapter-cast-inline-row">
+                                        <el-input v-model="crow.name" placeholder="角色名" maxlength="80" clearable style="flex:1;min-width:100px;" />
+                                        <el-select v-model="crow.focusTags" multiple filterable allow-create default-first-option collapse-tags placeholder="焦点词" style="flex:2;min-width:140px;" />
+                                        <el-button size="small" plain type="danger" @click="continueForm.chapterCast.characters.splice(cidx, 1)">删</el-button>
+                                    </div>
+                                    <el-button size="small" plain type="primary" class="chapter-cast-add-row-btn" @click="continueForm.chapterCast.characters.push({ name: '', focusTags: [] })">添加登场角色</el-button>
                                 </div>
-                                <el-button size="small" plain type="primary" @click="continueForm.chapterCast.characters.push({ name: '', focusTags: [] })" style="margin-bottom:12px;">添加登场角色</el-button>
                             </template>
                             <el-alert :title="continueForm.mode === 'auto' ? ('「写到第几章」须大于当前已写章数（当前约 ' + (generationProgress.chapterCount || chapters.length || 0) + ' 章），且不超过服务器允许的上限（当前 ' + autoContinueMaxTarget + '）；留空则用服务器默认目标。') : '可指定章号；留空则由服务器自动接下一空章。下方可写本章提要，不填也可。'" type="info" :closable="false" show-icon />
                             <el-alert v-if="continueForm.mode === 'continue' && continueForm.continueSingleApi === 'novelBase'" type="warning" :closable="false" show-icon class="continue-novel-style-hint" title="已选择与后端联调页相同的入口，一般保持「默认」即可。" />
@@ -1697,6 +1879,117 @@
                             <div class="dialog-footer">
                                 <el-button @click="deleteNovelDialogVisible = false">取消</el-button>
                                 <el-button type="danger" :loading="deleteNovelSubmitting" @click="submitPermanentDeleteNovel">永久删除</el-button>
+                            </div>
+                        </template>
+                    </el-dialog>
+
+                    <!-- 功能列表 -->
+                    <el-dialog v-model="featureGuideVisible" title="功能列表与使用指引" width="780px" align-center :close-on-click-modal="false" :class="['unified-dialog', compactDialogMode ? 'compact-dialog' : '']">
+                        <div class="feature-guide">
+                            <el-alert type="info" :closable="false" show-icon style="margin-bottom:16px;">
+                                <template #title>AI 小说创作台 v{{ appVersion }} — 一站式长篇小说 AI 辅助创作平台</template>
+                            </el-alert>
+
+                            <el-collapse v-model="featureCollapse">
+                                <el-collapse-item title="🚀 快速上手" name="quickstart">
+                                    <div class="fg-section">
+                                        <p><strong>1. 新建作品</strong> — 主页点击「新建作品」，填写题材、选择文风大类（默认爽文/轻小说/日常向/年代文/粗俗风），可选填全局设定和连载平台。提交后 AI 自动生成大纲和前几章。</p>
+                                        <p><strong>2. 续写章节</strong> — 进入作品后，工具栏点击「续写」，可选「一次写一章」或「自动连写」（一次生成多章）。</p>
+                                        <p><strong>3. 调整文风</strong> — 工具栏点击「文风」标签，展开各折叠面板调节叙事张力、对白占比、情绪带宽等参数，保存后仅对之后新写的章节生效。</p>
+                                        <p><strong>4. 阅读 & 导出</strong> — 左侧章节列表切换章节，阅读区查看正文。完成后可「导出 TXT」下载全书。</p>
+                                    </div>
+                                </el-collapse-item>
+
+                                <el-collapse-item title="📚 作品管理" name="books">
+                                    <div class="fg-section">
+                                        <p><strong>新建作品</strong> — 主页/作品库均可新建。支持自定义大纲规模（详细章节数、最低总章数）。「网络热梗」开关可控制是否注入时下流行语。</p>
+                                        <p><strong>书库公开</strong> — 管理员可在列表中将作品设为「公开」（访客可见）或「私有」。普通用户仅可见自己的书 + 他人公开书。</p>
+                                        <p><strong>删除作品</strong> — 永久删除需输入书名、抄写确认句、勾选不可恢复，防止误操作。有进行中任务时会先尝试取消。</p>
+                                        <p><strong>列表布局</strong> — 支持卡片/列表两种模式，偏好自动记忆。</p>
+                                        <p><strong>选中进入</strong> — 点击任意作品即可进入创作工作台。</p>
+                                    </div>
+                                </el-collapse-item>
+
+                                <el-collapse-item title="✍️ 章节创作" name="chapters">
+                                    <div class="fg-section">
+                                        <p><strong>章节列表</strong> — 左侧栏展示所有章节，点击切换。拖拽分隔条可调整宽度。章节右侧有状态标记（正常/续写中/重写中/待重写）。</p>
+                                        <p><strong>单章续写</strong> — 工具栏「续写」→ 选「一次写一章」→ 填写章节号和额外设定 → 提交。生成完成后自动刷新。</p>
+                                        <p><strong>自动连写</strong> — 「续写」→「自动连写」→ 设定目标章数 → 提交。AI 逐章自动生成，期间可随时在「写作任务」中取消。</p>
+                                        <p><strong>区间重生</strong> — 工具栏「区间重写」→ 填写起始和结束章号 → 按顺序重新生成指定区间内的所有章节。</p>
+                                        <p><strong>手动编辑正文</strong> — 阅读区点击「编辑正文」→ 修改标题/正文 → 保存到服务器（自动记录版本历史）。</p>
+                                        <p><strong>版本历史</strong> — 每章支持查看所有历史版本，可恢复到任意历史版本。</p>
+                                        <p><strong>复制本章</strong> — 一键复制当前章节全部正文到剪贴板。</p>
+                                        <p><strong>导出 TXT</strong> — 自动体检后导出全书为 TXT 文件。</p>
+                                        <p><strong>本章信息</strong> — 展开「本章生成设定」和「本章要点」可查看 AI 生成时使用的设定参数与关键事实/衔接锚点。</p>
+                                    </div>
+                                </el-collapse-item>
+
+                                <el-collapse-item title="📝 大纲与角色" name="outline">
+                                    <div class="fg-section">
+                                        <p><strong>查看大纲</strong> — 创作信息 > 大纲 Tab，或工具栏切换到大纲视图。Markdown 渲染，带目录导航。</p>
+                                        <p><strong>手动编辑大纲</strong> — 大纲 Tab 中点击「编辑 Markdown」，修改后保存。自动记录版本历史，可恢复。</p>
+                                        <p><strong>重新生成大纲</strong> — 大纲 Tab 展开「大纲生成」面板，填写补充说明和规模参数后提交。AI 重写全书大纲（同步长请求，请耐心等待）。</p>
+                                        <p><strong>大纲冲突图谱</strong> — 两阶段大纲生成的中间产物（JSON），可在大纲 Tab 底部查看，用于理解 AI 对全书结构的建模。</p>
+                                        <p><strong>角色管理</strong> — 创作信息 > 角色 Tab，或工具栏切换到角色视图。卡片网格展示所有角色（姓名/性别/年龄/外貌等），每张卡片可「编辑设定」。</p>
+                                        <p><strong>修复角色</strong> — 角色 Tab 工具栏可全量或部分重建角色设定。支持指定目标角色、添加上下文提示和额外要求。</p>
+                                    </div>
+                                </el-collapse-item>
+
+                                <el-collapse-item title="🎨 文风调控" name="style">
+                                    <div class="fg-section">
+                                        <p><strong>文风大类</strong> — 5 种预设文风：默认爽文、轻小说、日常向、年代文、粗俗风。切换后立即生效，影响后续所有新生成章节。</p>
+                                        <p><strong>文风四项</strong> — 叙事外放程度（克制/均衡/外放）、对白占比倾向、幽默与打趣程度、年代细节严苛度。</p>
+                                        <p><strong>叙事节奏 M6</strong> — 分桶策略：连续微扰（日常细水长流） vs 压力阈值（冲突蓄力爆发）。</p>
+                                        <p><strong>情绪与带宽</strong> — 主情绪标签、强度上下限滑条、压抑度、触发锚点密语、禁止短语（多选下拉）、节奏/材质/视角意图、亲昵/尴尬/强硬三维滑条、互动写法焦点、读者推断。</p>
+                                        <p><strong>认知弧线</strong> — 全书叙事阶段（前期/中期/后期）、认知偏置水平、犹豫类型、决策延迟暗示、错误代价暗示。</p>
+                                        <p><strong>文笔四层</strong> — 句子节奏（长短句落差/停顿留白/碎片断裂）、感知权重（感官/概念/行动/内心）、语言颗粒（抽象具象/择词精度/形容词节制/术语密度）、信息揭示（即时/分层/隐匿）。</p>
+                                        <p><strong>全书默认登场</strong> — 设定每章默认出场的角色及焦点，控制配角出现在背景还是前景。</p>
+                                        <p><strong>三种编辑模式</strong> — 普通（不传参）、进阶（折叠面板表单）、专家（直接编辑 JSON），可在面板顶部切换。</p>
+                                    </div>
+                                </el-collapse-item>
+
+                                <el-collapse-item title="🔍 质量与调试" name="quality">
+                                    <div class="fg-section">
+                                        <p><strong>导出体检</strong> — 检查全书导出前是否有未完成章节、空章节等问题，逐项列出。</p>
+                                        <p><strong>一致性告警</strong> — 按章节展示 AI 检测到的人物/情节/设定不一致之处。</p>
+                                        <p><strong>章节事实</strong> — 每章提取的关键事实摘要，按章节排列。</p>
+                                        <p><strong>主线快照</strong> — 按叙事阶段展示章节范围和主线摘要，把握全书脉络。</p>
+                                        <p><strong>生成快照 M7</strong> — Planner/Lint 结构化快照，按章节展示 AI 规划与审核的完整 JSON，用于深度调试。</p>
+                                        <p><strong>跨章快照 M9</strong> — 全书级跨章记忆 JSON（角色关系提示、张力波动提示等），展示 AI 如何维持长程叙事一致性。</p>
+                                        <p><strong>角色动态状态</strong> — 每章落库后 AI 自动更新的角色状态增量（情绪变化、关系变化等），展开可查看 JSON。</p>
+                                        <p><strong>刷新当前标签</strong> — 质量弹窗底部「刷新当前标签」按钮可按当前选中的 Tab 加载最新数据。</p>
+                                    </div>
+                                </el-collapse-item>
+
+                                <el-collapse-item title="📋 写作任务管理" name="tasks">
+                                    <div class="fg-section">
+                                        <p><strong>任务列表</strong> — 工具栏「写作任务」弹窗，按时间倒序展示所有生成任务（续写/大纲再生/开书引导），含类型、状态、区间、进度等信息。</p>
+                                        <p><strong>催执行</strong> — 对排队中（PENDING）的任务催促执行。</p>
+                                        <p><strong>取消</strong> — 取消进行中（RUNNING）或排队中的任务。</p>
+                                        <p><strong>重试</strong> — 对失败（FAILED）或已取消的任务重新发起。</p>
+                                        <p><strong>实时状态</strong> — 打开弹窗期间可随时「刷新」拉取最新任务状态。</p>
+                                    </div>
+                                </el-collapse-item>
+
+                                <el-collapse-item title="⚙️ 系统功能" name="system">
+                                    <div class="fg-section">
+                                        <p><strong>服务切换</strong> — 顶栏可在「本地」和「云端」后端之间切换，适应不同开发/生产环境。</p>
+                                        <p><strong>连接测试</strong> — 点击「测试」按钮主动检测后端连通性。</p>
+                                        <p><strong>登录/注册</strong> — 支持用户注册和 JWT 登录。管理员可查看「用户列表」（含登录 IP、归属地、最近登录时间）。</p>
+                                        <p><strong>运行监控</strong> — 侧边栏「运行监控」页面展示所有 API 请求日志，可按类型过滤（全部/信息/成功/警告/错误），支持展开长日志和清空。</p>
+                                        <p><strong>紧凑弹窗</strong> — 工具栏开关可切换弹窗紧凑模式，减少滚动让内容更集中。</p>
+                                        <p><strong>自动更新</strong> — 顶栏「检查更新」可手动检查新版本；启动时自动检测，发现新版本后后台下载，完成后点击「重启安装」即可升级。</p>
+                                    </div>
+                                </el-collapse-item>
+                            </el-collapse>
+
+                            <div class="fg-footer">
+                                <p>更多细节见后端契约文档 <code>API接口总表.md</code>、<code>前端与用户指引.md</code>、<code>导演台与叙事功能使用说明.md</code>。</p>
+                            </div>
+                        </div>
+                        <template #footer>
+                            <div class="dialog-footer">
+                                <el-button type="primary" @click="featureGuideVisible = false">知道了</el-button>
                             </div>
                         </template>
                     </el-dialog>
@@ -2476,8 +2769,18 @@
                     /** 总表 §4.10 / frontend-runtime */
                     characterCastEnabled: false,
                     characterStateInjectEnabled: false,
-                    characterStateDeltaEnabled: false
+                    characterStateDeltaEnabled: false,
+                    /** 附录 A / §0.0：两阶段大纲与图谱 token 上限 */
+                    outlineTwoPhaseGraphEnabled: true,
+                    outlineGraphPhaseMaxTokens: null
                 });
+                /** 总表 §4.10：Cast/Delta/Inject 三者全 false 时宜隐藏「本章登场」等；仅 Delta 为 true 时仍宜填 chapterCast（否则易跳过 Delta） */
+                const showChapterCastRequestForms = computed(
+                    () =>
+                        !frontendRuntime.value.loaded ||
+                        frontendRuntime.value.characterCastEnabled ||
+                        frontendRuntime.value.characterStateDeltaEnabled
+                );
                 const autoContinueMaxTarget = ref(CONFIG.AUTO_CONTINUE_MAX_TARGET);
                 const continueDialogVisible = ref(false);
                 const failureLogDialogVisible = ref(false);
@@ -2559,7 +2862,8 @@
                     characterNarrativeStates: false,
                     regenerationTasks: false,
                     generationTasksList: false,
-                    dashboard: false
+                    dashboard: false,
+                    authUsers: false
                 });
                 const actions = reactive({
                     creating: false,
@@ -2574,12 +2878,24 @@
                     exporting: false,
                     refreshing: false,
                     adminLoggingIn: false,
-                    outlineRegenerating: false
+                    outlineRegenerating: false,
+                    chapterContentSaving: false,
+                    outlineContentSaving: false,
+                    characterContentSaving: false
                 });
                 const testing = ref(false);
                 const isCloudServer = ref(false);
                 const connectionStatus = ref({ type: 'info', text: '未连接' });
-                const authSession = ref({ securityEnabled: false, authenticated: false, role: null });
+                const authSession = ref({
+                    securityEnabled: false,
+                    authenticated: false,
+                    role: null,
+                    userId: null,
+                    username: null,
+                    /** 登录响应 §0：ip / location（归属地）；/me 通常不含，由最近一次登录写入 */
+                    lastLoginIp: null,
+                    lastLoginLocation: null
+                });
                 const authTokenPresent = ref(!!localStorage.getItem(CONFIG.STORAGE_AUTH_TOKEN));
                 const syncAuthTokenPresent = () => {
                     authTokenPresent.value = !!localStorage.getItem(CONFIG.STORAGE_AUTH_TOKEN);
@@ -2587,14 +2903,37 @@
                 const authClusterHint = computed(() => {
                     const s = authSession.value;
                     if (s.securityEnabled) {
-                        return s.authenticated
-                            ? '已以管理员身份登录，可使用书库管理权限'
-                            : '书库访问控制已启用：未登录仅可见公共作品，登录后可管理全书';
+                        if (!s.authenticated) return '书库访问控制已启用：访客仅可见公共书；登录后可看自己+公开书（用户）或全部书（管理员）';
+                        if (String(s.role || '').toUpperCase() === 'ADMIN') return '管理员：全部小说与书库公开开关';
+                        return '已登录用户：可访问自己的书与他人公开书';
                     }
                     return '当前未强制登录；服务端若启用安全策略，可先登录再使用管理员功能';
                 });
+                const isAdminRole = computed(() => String(authSession.value.role || '').toUpperCase() === 'ADMIN');
+                /** 总表 §0：普通用户仅可删除 userId 与本人一致的书；管理员均可；未启用安全时沿用旧行为 */
+                const canDeleteNovel = (row) => {
+                    if (!row?.id) return false;
+                    if (!authSession.value.securityEnabled) return true;
+                    if (isAdminRole.value) return true;
+                    if (!authSession.value.authenticated) return false;
+                    if (String(authSession.value.role || '').toUpperCase() !== 'USER') return false;
+                    const uid = authSession.value.userId;
+                    if (uid == null || row.userId == null) return false;
+                    return Number(row.userId) === Number(uid);
+                };
+                const authLoginGeoHint = computed(() => {
+                    const s = authSession.value;
+                    if (!s.authenticated) return '';
+                    const lines = [];
+                    if (s.lastLoginIp) lines.push(`最近登录 IP：${s.lastLoginIp}`);
+                    if (s.lastLoginLocation) lines.push(`归属地：${s.lastLoginLocation}`);
+                    return lines.length ? lines.join('\n') : '地理信息在登录成功响应中返回（接口文档「用户系统」）；重新登录后可查看';
+                });
                 const loginDialogVisible = ref(false);
+                const loginDialogMode = ref('login');
                 const loginForm = ref({ username: '', password: '' });
+                const authUsersDialogVisible = ref(false);
+                const authUsersList = ref([]);
                 const compactDialogMode = ref(false);
                 const LIBRARY_LAYOUT_STORAGE_KEY = 'novelLibraryLayout';
                 const libraryLayoutMode = ref(
@@ -2662,6 +3001,30 @@
                 const chapterListWidth = ref(190);
                 const chapterSettingExpanded = ref(false);
                 const chapterSidecarExpanded = ref(false);
+                /** §4.11 章节正文手动编辑 */
+                const chapterContentEditing = ref(false);
+                const chapterEditDraft = ref({ content: '', title: '', editNote: '' });
+                const chapterRevisionDialogVisible = ref(false);
+                const chapterRevisionLoading = ref(false);
+                const chapterRevisionRows = ref([]);
+                const chapterRevisionDetailVisible = ref(false);
+                const chapterRevisionDetail = ref(null);
+                /** §4.12 大纲 Markdown 手动编辑 */
+                const outlineManualEditing = ref(false);
+                const outlineEditForm = ref({ content: '', editNote: '' });
+                const outlineRevisionDialogVisible = ref(false);
+                const outlineRevisionLoading = ref(false);
+                const outlineRevisionRows = ref([]);
+                const outlineRevisionDetailVisible = ref(false);
+                const outlineRevisionDetail = ref(null);
+                /** §4.13 角色 profileContent */
+                const characterEditDialogVisible = ref(false);
+                const characterEditForm = ref({ id: null, displayName: '', title: '', content: '', editNote: '' });
+                const characterRevisionDialogVisible = ref(false);
+                const characterRevisionLoading = ref(false);
+                const characterRevisionRows = ref([]);
+                const characterRevisionDetailVisible = ref(false);
+                const characterRevisionDetail = ref(null);
 
                 let axiosInstance = createAxiosInstance();
                 let stopResizeChapterList = null;
@@ -3401,10 +3764,46 @@
                     if (activeCount > 0) return `${phaseLabel} · ${activeCount} 章处理中`;
                     return phaseLabel;
                 });
-                const formatCharacter = (character) => character.profile || character.description || character.setting || JSON.stringify(character);
+                const formatCharacter = (character) =>
+                    character.profileContent ||
+                    character.profile ||
+                    character.description ||
+                    character.setting ||
+                    JSON.stringify(character);
                 const getCharacterSections = (character) => {
                     const raw = String(character?.profileContent || character?.profile || character?.description || character?.setting || '').trim();
                     if (!raw) return [];
+                    if (raw.startsWith('{')) {
+                        try {
+                            const j = JSON.parse(raw);
+                            if (j && typeof j === 'object' && !Array.isArray(j)) {
+                                const preferred = [
+                                    ['name', '姓名'],
+                                    ['gender', '性别'],
+                                    ['age', '年龄'],
+                                    ['appearance', '外貌'],
+                                    ['voice', '声线'],
+                                    ['summary', '摘要']
+                                ];
+                                const used = new Set();
+                                const sections = [];
+                                preferred.forEach(([k, label]) => {
+                                    if (j[k] == null || String(j[k]).trim() === '') return;
+                                    used.add(k);
+                                    sections.push({ label, content: String(j[k]).trim() });
+                                });
+                                Object.keys(j).forEach((k) => {
+                                    if (used.has(k)) return;
+                                    const v = j[k];
+                                    if (v == null || (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean')) return;
+                                    sections.push({ label: k, content: String(v).trim() });
+                                });
+                                return sections;
+                            }
+                        } catch {
+                            /* 按行解析 */
+                        }
+                    }
                     const lines = raw.split('\n').map(line => line.trim()).filter(Boolean);
                     const sections = [];
                     lines.forEach(line => {
@@ -3633,7 +4032,12 @@
                             autoContinueDefaultTarget: src.autoContinueDefaultTarget != null ? Number(src.autoContinueDefaultTarget) : null,
                             characterCastEnabled: src.characterCastEnabled === true,
                             characterStateInjectEnabled: src.characterStateInjectEnabled === true,
-                            characterStateDeltaEnabled: src.characterStateDeltaEnabled === true
+                            characterStateDeltaEnabled: src.characterStateDeltaEnabled === true,
+                            outlineTwoPhaseGraphEnabled: src.outlineTwoPhaseGraphEnabled !== false,
+                            outlineGraphPhaseMaxTokens:
+                                src.outlineGraphPhaseMaxTokens != null && Number.isFinite(Number(src.outlineGraphPhaseMaxTokens))
+                                    ? Number(src.outlineGraphPhaseMaxTokens)
+                                    : null
                         };
                         if (frontendRuntime.value.m7ArtifactEnabled === false && qualityTab.value === 'narrativeArtifacts') {
                             qualityTab.value = 'exportHealth';
@@ -3645,7 +4049,7 @@
                             authSession.value = { ...authSession.value, securityEnabled: !!src.securityEnabled };
                         }
                         addLog(
-                            `已同步 frontend-runtime：autoContinueMax=${autoContinueMaxTarget.value}，M7=${frontendRuntime.value.m7ArtifactEnabled}，M9=${frontendRuntime.value.m9CrosscutEnabled}，Cast=${frontendRuntime.value.characterCastEnabled}，StateΔ=${frontendRuntime.value.characterStateDeltaEnabled}`,
+                            `已同步 frontend-runtime：autoContinueMax=${autoContinueMaxTarget.value}，M7=${frontendRuntime.value.m7ArtifactEnabled}，M9=${frontendRuntime.value.m9CrosscutEnabled}，Cast=${frontendRuntime.value.characterCastEnabled}，StateInject=${frontendRuntime.value.characterStateInjectEnabled}，StateΔ=${frontendRuntime.value.characterStateDeltaEnabled}，两阶段图谱=${frontendRuntime.value.outlineTwoPhaseGraphEnabled}，graphTokens=${frontendRuntime.value.outlineGraphPhaseMaxTokens ?? '-'}`,
                             'info'
                         );
                         return true;
@@ -3801,27 +4205,73 @@
                 };
 
                 const fetchAuthMe = async () => {
+                    const prevIp = authSession.value.lastLoginIp;
+                    const prevLoc = authSession.value.lastLoginLocation;
                     try {
                         const token = localStorage.getItem(CONFIG.STORAGE_AUTH_TOKEN);
                         const headers = { 'Content-Type': 'application/json' };
                         if (token) headers.Authorization = `Bearer ${token}`;
                         const res = await axios.get(`${apiBase.value}${CONFIG.AUTH_API_PATH}/me`, { headers, timeout: 8000 });
                         const d = res.data?.data || res.data || {};
+                        const authed = !!d.authenticated;
                         authSession.value = {
                             securityEnabled: !!d.securityEnabled,
-                            authenticated: !!d.authenticated,
-                            role: d.role || null
+                            authenticated: authed,
+                            role: authed ? d.role || null : null,
+                            userId: authed ? (d.userId != null ? d.userId : null) : null,
+                            username: authed ? d.username || null : null,
+                            lastLoginIp: authed ? prevIp : null,
+                            lastLoginLocation: authed ? prevLoc : null
                         };
                     } catch {
-                        authSession.value = { securityEnabled: false, authenticated: false, role: null };
+                        authSession.value = {
+                            securityEnabled: false,
+                            authenticated: false,
+                            role: null,
+                            userId: null,
+                            username: null,
+                            lastLoginIp: null,
+                            lastLoginLocation: null
+                        };
                     } finally {
                         syncAuthTokenPresent();
                     }
                 };
 
                 const openLoginDialog = () => {
+                    loginDialogMode.value = 'login';
                     loginForm.value = { username: '', password: '' };
                     loginDialogVisible.value = true;
+                };
+
+                const submitRegister = async () => {
+                    const username = String(loginForm.value.username || '').trim();
+                    const password = String(loginForm.value.password || '');
+                    if (!username || password.length < 4) {
+                        showMessage('请输入用户名，密码至少 4 位', 'warning');
+                        return;
+                    }
+                    actions.adminLoggingIn = true;
+                    try {
+                        const res = await axios.post(`${apiBase.value}${CONFIG.AUTH_API_PATH}/register`, { username, password }, {
+                            headers: { 'Content-Type': 'application/json' },
+                            timeout: CONFIG.REQUEST_TIMEOUT
+                        });
+                        const d = res.data?.data || res.data || {};
+                        if (String(d.status || '').toLowerCase() === 'success' || d.userId != null) {
+                            showMessage(d.message || '注册成功，请登录', 'success');
+                            loginDialogMode.value = 'login';
+                            loginForm.value.password = '';
+                            return;
+                        }
+                        showMessage(d.message || '注册失败', 'warning');
+                    } catch (error) {
+                        const data = error.response?.data;
+                        const msg = data?.message || data?.code || error.message;
+                        showMessage(typeof msg === 'string' ? msg : '注册失败', 'error');
+                    } finally {
+                        actions.adminLoggingIn = false;
+                    }
                 };
 
                 const submitAdminLogin = async () => {
@@ -3854,6 +4304,9 @@
                             loginDialogVisible.value = false;
                             loginForm.value.password = '';
                             await fetchAuthMe();
+                            authSession.value.lastLoginIp = d.ip != null ? String(d.ip) : authSession.value.lastLoginIp;
+                            authSession.value.lastLoginLocation =
+                                d.location != null ? String(d.location) : d.lastLoginLocation != null ? String(d.lastLoginLocation) : authSession.value.lastLoginLocation;
                             await fetchNovels();
                             showMessage(d.message || '登录成功', 'success');
                             return;
@@ -3885,8 +4338,12 @@
 
                 const updateNovelLibraryVisibility = async (row, libraryPublic) => {
                     if (!row?.id) return;
+                    if (!isAdminRole.value) {
+                        showMessage('仅管理员可修改书库公开状态（总表 §0）', 'warning');
+                        return;
+                    }
                     if (!authSession.value.authenticated) {
-                        showMessage('需要管理员登录后才能修改书库可见性', 'warning');
+                        showMessage('请先登录管理员账号', 'warning');
                         return;
                     }
                     try {
@@ -3895,6 +4352,272 @@
                         await fetchNovels();
                     } catch (error) {
                         showErrorMessage(error, '更新书库可见性失败');
+                    }
+                };
+
+                const cancelChapterContentEdit = () => {
+                    chapterContentEditing.value = false;
+                };
+                const startChapterContentEdit = () => {
+                    const ch = currentChapter.value;
+                    if (!ch) return;
+                    chapterEditDraft.value = {
+                        content: String(ch.content || ''),
+                        title: String(ch.title || ''),
+                        editNote: ''
+                    };
+                    chapterContentEditing.value = true;
+                };
+                const submitChapterContentSave = async () => {
+                    const nid = currentNovel.value?.id;
+                    const cn = currentChapter.value?.chapterNumber;
+                    if (!nid || cn == null) return;
+                    actions.chapterContentSaving = true;
+                    try {
+                        const body = { content: chapterEditDraft.value.content || '' };
+                        const t = String(chapterEditDraft.value.title || '').trim();
+                        if (t) body.title = t;
+                        const note = String(chapterEditDraft.value.editNote || '').trim();
+                        if (note) body.editNote = note;
+                        await axiosInstance.put(`/${nid}/chapters/${cn}/content`, body);
+                        showMessage('正文已保存', 'success');
+                        chapterContentEditing.value = false;
+                        await fetchChapters(nid);
+                        const updated = chapters.value.find((c) => Number(c.chapterNumber) === Number(cn));
+                        if (updated) currentChapter.value = updated;
+                    } catch (error) {
+                        showErrorMessage(error, '保存章节失败');
+                    } finally {
+                        actions.chapterContentSaving = false;
+                    }
+                };
+                const openChapterRevisionDialog = async () => {
+                    const nid = currentNovel.value?.id;
+                    const cn = currentChapter.value?.chapterNumber;
+                    if (!nid || cn == null) {
+                        showMessage('请先选择章节', 'warning');
+                        return;
+                    }
+                    chapterRevisionDialogVisible.value = true;
+                    chapterRevisionLoading.value = true;
+                    chapterRevisionRows.value = [];
+                    try {
+                        const res = await axiosInstance.get(`/${nid}/chapters/${cn}/revisions`);
+                        chapterRevisionRows.value = normalizeList(res.data);
+                    } catch (error) {
+                        showErrorMessage(error, '加载章节版本失败');
+                    } finally {
+                        chapterRevisionLoading.value = false;
+                    }
+                };
+                const openChapterRevisionDetail = async (revId) => {
+                    const nid = currentNovel.value?.id;
+                    const cn = currentChapter.value?.chapterNumber;
+                    if (!nid || cn == null || revId == null) return;
+                    try {
+                        const res = await axiosInstance.get(`/${nid}/chapters/${cn}/revisions/${revId}`);
+                        chapterRevisionDetail.value = res.data?.data || res.data;
+                        chapterRevisionDetailVisible.value = true;
+                    } catch (error) {
+                        showErrorMessage(error, '加载版本详情失败');
+                    }
+                };
+                const confirmRestoreChapterRevision = async (revId) => {
+                    const nid = currentNovel.value?.id;
+                    const cn = currentChapter.value?.chapterNumber;
+                    if (!nid || cn == null || revId == null) return;
+                    try {
+                        await ElementPlus.ElMessageBox.confirm(
+                            '恢复前会将当前正文自动存档为新版本，确定恢复到所选历史版本吗？',
+                            '恢复章节版本',
+                            { confirmButtonText: '恢复', cancelButtonText: '取消', type: 'warning' }
+                        );
+                    } catch {
+                        return;
+                    }
+                    try {
+                        await axiosInstance.post(`/${nid}/chapters/${cn}/revisions/${revId}/restore`, {});
+                        showMessage('已恢复章节版本', 'success');
+                        chapterRevisionDialogVisible.value = false;
+                        cancelChapterContentEdit();
+                        await fetchChapters(nid);
+                        const updated = chapters.value.find((c) => Number(c.chapterNumber) === Number(cn));
+                        if (updated) currentChapter.value = updated;
+                    } catch (error) {
+                        showErrorMessage(error, '恢复章节版本失败');
+                    }
+                };
+
+                const cancelOutlineManualEdit = () => {
+                    outlineManualEditing.value = false;
+                };
+                const startOutlineManualEdit = () => {
+                    outlineEditForm.value = {
+                        content: String(outlineInfo.value.description || ''),
+                        editNote: ''
+                    };
+                    outlineManualEditing.value = true;
+                };
+                const submitOutlineContentSave = async () => {
+                    const nid = currentNovel.value?.id;
+                    if (!nid) return;
+                    actions.outlineContentSaving = true;
+                    try {
+                        const body = { content: outlineEditForm.value.content || '' };
+                        const note = String(outlineEditForm.value.editNote || '').trim();
+                        if (note) body.editNote = note;
+                        await axiosInstance.put(`/${nid}/outline/content`, body);
+                        showMessage('大纲已保存', 'success');
+                        outlineManualEditing.value = false;
+                        await fetchOutline(nid);
+                    } catch (error) {
+                        showErrorMessage(error, '保存大纲失败');
+                    } finally {
+                        actions.outlineContentSaving = false;
+                    }
+                };
+                const openOutlineRevisionDialog = async () => {
+                    const nid = currentNovel.value?.id;
+                    if (!nid) {
+                        showMessage('请先打开一本书', 'warning');
+                        return;
+                    }
+                    outlineRevisionDialogVisible.value = true;
+                    outlineRevisionLoading.value = true;
+                    outlineRevisionRows.value = [];
+                    try {
+                        const res = await axiosInstance.get(`/${nid}/outline/revisions`);
+                        outlineRevisionRows.value = normalizeList(res.data);
+                    } catch (error) {
+                        showErrorMessage(error, '加载大纲版本失败');
+                    } finally {
+                        outlineRevisionLoading.value = false;
+                    }
+                };
+                const openOutlineRevisionDetail = async (revId) => {
+                    const nid = currentNovel.value?.id;
+                    if (!nid || revId == null) return;
+                    try {
+                        const res = await axiosInstance.get(`/${nid}/outline/revisions/${revId}`);
+                        outlineRevisionDetail.value = res.data?.data || res.data;
+                        outlineRevisionDetailVisible.value = true;
+                    } catch (error) {
+                        showErrorMessage(error, '加载大纲版本详情失败');
+                    }
+                };
+                const confirmRestoreOutlineRevision = async (revId) => {
+                    const nid = currentNovel.value?.id;
+                    if (!nid || revId == null) return;
+                    try {
+                        await ElementPlus.ElMessageBox.confirm('当前大纲会先存档，再写入所选版本。是否继续？', '恢复大纲版本', {
+                            confirmButtonText: '恢复',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        });
+                    } catch {
+                        return;
+                    }
+                    try {
+                        await axiosInstance.post(`/${nid}/outline/revisions/${revId}/restore`, {});
+                        showMessage('已恢复大纲版本', 'success');
+                        outlineRevisionDialogVisible.value = false;
+                        cancelOutlineManualEdit();
+                        await fetchOutline(nid);
+                    } catch (error) {
+                        showErrorMessage(error, '恢复大纲版本失败');
+                    }
+                };
+
+                /** CharacterProfile 列表项自带数据库主键 id，PUT .../characters/{id}/content 路径即用此 id */
+                const openCharacterEditDialog = (character) => {
+                    if (!character?.id) {
+                        showMessage('本项缺少 id，无法调用设定保存接口', 'warning');
+                        return;
+                    }
+                    const raw =
+                        character.profileContent ||
+                        character.profile ||
+                        character.description ||
+                        character.setting ||
+                        '';
+                    characterEditForm.value = {
+                        id: character.id,
+                        displayName: character.name || character.characterName || String(character.id),
+                        title: character.name || character.characterName || '',
+                        content: typeof raw === 'string' ? raw : JSON.stringify(raw, null, 2),
+                        editNote: ''
+                    };
+                    characterEditDialogVisible.value = true;
+                };
+                const submitCharacterContentSave = async () => {
+                    const nid = currentNovel.value?.id;
+                    const cid = characterEditForm.value.id;
+                    if (!nid || cid == null) return;
+                    actions.characterContentSaving = true;
+                    try {
+                        const body = { content: characterEditForm.value.content || '' };
+                        const title = String(characterEditForm.value.title || '').trim();
+                        if (title) body.title = title;
+                        const note = String(characterEditForm.value.editNote || '').trim();
+                        if (note) body.editNote = note;
+                        await axiosInstance.put(`/${nid}/characters/${cid}/content`, body);
+                        showMessage('角色设定已保存', 'success');
+                        characterEditDialogVisible.value = false;
+                        await fetchCharacters(nid);
+                    } catch (error) {
+                        showErrorMessage(error, '保存角色设定失败');
+                    } finally {
+                        actions.characterContentSaving = false;
+                    }
+                };
+                const openCharacterRevisionDialogFromEdit = async () => {
+                    const nid = currentNovel.value?.id;
+                    const cid = characterEditForm.value.id;
+                    if (!nid || cid == null) return;
+                    characterRevisionDialogVisible.value = true;
+                    characterRevisionLoading.value = true;
+                    characterRevisionRows.value = [];
+                    try {
+                        const res = await axiosInstance.get(`/${nid}/characters/${cid}/revisions`);
+                        characterRevisionRows.value = normalizeList(res.data);
+                    } catch (error) {
+                        showErrorMessage(error, '加载角色版本失败');
+                    } finally {
+                        characterRevisionLoading.value = false;
+                    }
+                };
+                const openCharacterRevisionDetail = async (revId) => {
+                    const nid = currentNovel.value?.id;
+                    const cid = characterEditForm.value.id;
+                    if (!nid || cid == null || revId == null) return;
+                    try {
+                        const res = await axiosInstance.get(`/${nid}/characters/${cid}/revisions/${revId}`);
+                        characterRevisionDetail.value = res.data?.data || res.data;
+                        characterRevisionDetailVisible.value = true;
+                    } catch (error) {
+                        showErrorMessage(error, '加载角色版本详情失败');
+                    }
+                };
+                const confirmRestoreCharacterRevision = async (revId) => {
+                    const nid = currentNovel.value?.id;
+                    const cid = characterEditForm.value.id;
+                    if (!nid || cid == null || revId == null) return;
+                    try {
+                        await ElementPlus.ElMessageBox.confirm('当前设定会先存档，再写入所选版本。是否继续？', '恢复角色版本', {
+                            confirmButtonText: '恢复',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        });
+                    } catch {
+                        return;
+                    }
+                    try {
+                        await axiosInstance.post(`/${nid}/characters/${cid}/revisions/${revId}/restore`, {});
+                        showMessage('已恢复角色版本', 'success');
+                        characterRevisionDialogVisible.value = false;
+                        await fetchCharacters(nid);
+                    } catch (error) {
+                        showErrorMessage(error, '恢复角色版本失败');
                     }
                 };
 
@@ -4202,9 +4925,33 @@
                     }
                 };
 
+                /** GET .../characters → CharacterProfile[]，每项 id 为 profile 主键 */
                 const fetchCharacters = async (novelId) => {
                     const res = await axiosInstance.get(`/${novelId}/characters`);
                     characters.value = normalizeList(res.data);
+                };
+
+                const fetchAuthUsers = async () => {
+                    loading.authUsers = true;
+                    try {
+                        const token = localStorage.getItem(CONFIG.STORAGE_AUTH_TOKEN);
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (token) headers.Authorization = `Bearer ${token}`;
+                        const res = await axios.get(`${apiBase.value}${CONFIG.AUTH_API_PATH}/users`, {
+                            headers,
+                            timeout: CONFIG.REQUEST_TIMEOUT
+                        });
+                        authUsersList.value = normalizeList(res.data);
+                    } catch (error) {
+                        authUsersList.value = [];
+                        showErrorMessage(error, '加载用户列表失败（须管理员登录）');
+                    } finally {
+                        loading.authUsers = false;
+                    }
+                };
+                const openAuthUsersDialog = async () => {
+                    authUsersDialogVisible.value = true;
+                    await fetchAuthUsers();
                 };
 
                 const repairCharacters = async () => {
@@ -4672,6 +5419,7 @@
                 const handleChapterSelect = (index) => {
                     const chapter = chapters.value.find(c => c.id == index);
                     if (chapter) {
+                        cancelChapterContentEdit();
                         currentChapter.value = chapter;
                         chapterSettingExpanded.value = false;
                         chapterSidecarExpanded.value = false;
@@ -4685,6 +5433,8 @@
                 const backToNovelList = () => {
                     stopProgressPolling();
                     stopRegenerationTaskPolling();
+                    cancelChapterContentEdit();
+                    cancelOutlineManualEdit();
                     currentNovel.value = null;
                     currentChapter.value = null;
                     chapterSettingExpanded.value = false;
@@ -5658,6 +6408,10 @@
                 };
 
                 const handleDeleteNovel = async (row) => {
+                    if (!canDeleteNovel(row)) {
+                        showMessage('无权删除该书（普通用户仅可删除本人创建的书）', 'warning');
+                        return;
+                    }
                     try {
                         const res = await axiosInstance.get(`/${row.id}/delete-guard`);
                         const g = res.data?.data || res.data || {};
@@ -5698,6 +6452,13 @@
                         showMessage('确认句须与展示内容完全一致', 'warning');
                         return;
                     }
+                    const novelRow = novels.value.find((n) => n.id === id);
+                    if (novelRow && !canDeleteNovel(novelRow)) {
+                        showMessage('无权删除该书（普通用户仅可删除本人创建的书）', 'warning');
+                        deleteNovelDialogVisible.value = false;
+                        resetDeleteNovelDialog();
+                        return;
+                    }
                     deleteNovelSubmitting.value = true;
                     try {
                         await axiosInstance.post(`/${id}/delete`, {
@@ -5712,7 +6473,13 @@
                         await fetchNovels();
                         refreshDashboardOverview();
                     } catch (error) {
-                        showErrorMessage(error, '删除失败');
+                        const st = error.response?.status;
+                        const msg = error.response?.data?.message;
+                        if (st === 403) {
+                            showMessage(msg || '无权限删除（仅管理员或本书创建者可删除）', 'warning');
+                        } else {
+                            showErrorMessage(error, '删除失败');
+                        }
                     } finally {
                         deleteNovelSubmitting.value = false;
                     }
@@ -5734,6 +6501,62 @@
                     ElementPlus.ElMessage({ message, type: 'error', duration: 3500, showClose: true });
                 }
 
+                const featureGuideVisible = ref(false);
+                const featureCollapse = ref(['quickstart', 'books']);
+                const appVersion = ref('1.0.1');
+
+                const updateStatus = reactive({ status: 'idle', version: '', percent: 0, message: '' });
+                let updateCheckManual = false;
+
+                if (ipcRenderer) {
+                    ipcRenderer.on('update-status', (_event, data) => {
+                        const newStatus = data.status || 'idle';
+                        Object.assign(updateStatus, { status: 'idle', version: '', percent: 0, message: '' }, data);
+
+                        if (updateCheckManual) {
+                            if (newStatus === 'up-to-date') {
+                                ElementPlus.ElMessage({ message: '已是最新版本', type: 'success', duration: 2000, showClose: true });
+                                updateCheckManual = false;
+                                updateStatus.status = 'idle';
+                            } else if (newStatus === 'error') {
+                                ElementPlus.ElMessage({ message: '检查更新失败: ' + (data.message || '网络不可达'), type: 'error', duration: 4000, showClose: true });
+                                updateCheckManual = false;
+                                updateStatus.status = 'idle';
+                            } else if (newStatus === 'downloaded') {
+                                updateCheckManual = false;
+                            }
+                        } else {
+                            if (newStatus === 'error' || newStatus === 'up-to-date') {
+                                updateStatus.status = 'idle';
+                            }
+                        }
+                    });
+                }
+
+                let updateCheckTimer = null;
+
+                const checkForUpdate = () => {
+                    if (updateStatus.status === 'downloaded') return;
+                    if (updateStatus.status === 'checking') return;
+                    updateCheckManual = true;
+                    updateStatus.status = 'checking';
+                    ipcRenderer?.send('check-for-update');
+                    clearTimeout(updateCheckTimer);
+                    updateCheckTimer = setTimeout(() => {
+                        if (updateStatus.status === 'checking') {
+                            updateStatus.status = 'idle';
+                            if (updateCheckManual) {
+                                ElementPlus.ElMessage({ message: '检查更新超时，请检查网络后重试', type: 'warning', duration: 3000, showClose: true });
+                                updateCheckManual = false;
+                            }
+                        }
+                    }, 30000);
+                };
+
+                const quitAndInstall = () => {
+                    ipcRenderer?.send('quit-and-install');
+                };
+
                 onMounted(async () => {
                     addLog('应用启动', 'info');
                     addLog(`默认服务器: ${CONFIG.DEFAULT_API_BASE}`, 'info');
@@ -5754,17 +6577,21 @@
                     createWritingStyleUiMode, pipelineWritingStyleUiMode, createWritingStyleExpertJson, pipelineWritingStyleExpertJson,
                     handleCreateWritingStyleModeChange, handlePipelineWritingStyleModeChange,
                     validateCreateExpertInteractive, validatePipelineExpertInteractive, syncCreateExpertJsonFromModel, syncPipelineExpertJsonFromModel,
-                    outlinePlanDefaults, frontendRuntime, autoContinueMaxTarget, outlineRoadmapInputMin, outlineRegenerateForm, outlineRegenerateCollapseNames, outlineRegenerateRoadmapMin, outlineRegenerateTimeoutMinutes, continueDialogVisible, rangeRegenerateDialogVisible, failureLogDialogVisible, qualityCenterDialogVisible, qualityTab, storyInfoDialogVisible, storyInfoTab, pipelineDialogVisible, continueForm, rangeRegenerateForm, pipelineForm, characterRepairForceRegenerate, characterRepairForm,
+                    outlinePlanDefaults, frontendRuntime, showChapterCastRequestForms, autoContinueMaxTarget, outlineRoadmapInputMin, outlineRegenerateForm, outlineRegenerateCollapseNames, outlineRegenerateRoadmapMin, outlineRegenerateTimeoutMinutes, continueDialogVisible, rangeRegenerateDialogVisible, failureLogDialogVisible, qualityCenterDialogVisible, qualityTab, storyInfoDialogVisible, storyInfoTab, pipelineDialogVisible, continueForm, rangeRegenerateForm, pipelineForm, characterRepairForceRegenerate, characterRepairForm,
                     generationProgress, outlineInfo, characters, generationLogs, failureLogs, exportHealthResult, consistencyAlerts, chapterFacts, plotSnapshots, narrativeArtifacts, formatNarrativeArtifactJson, narrativeStateBundle, narrativeStateJsonText, characterNarrativeStates, formatCharacterStateJson, chapterSidecar, currentPipeline, currentPipelineLabel, regenerationTaskStatus, currentChapterSidecar, currentChapterSidecarFacts, chapterSidecarPreview, chapterParagraphs, currentChapterRewriteStatus, chapterRewriteProgressText, writingMonitorToolbarText, writingMonitorToneClass, outlineToc, outlineGraphJsonDisplay, currentNovelSettingText, narrativeCarryoverDisplay, bookMetaDisplayPlatform, bookMetaDisplayNote, bookMetaNoteShort, chapterSettingPreview, workbenchMode, chapterSettingExpanded, chapterSidecarExpanded, contentRef, readerRef, logContainerRef,
+                    chapterContentEditing, chapterEditDraft, startChapterContentEdit, cancelChapterContentEdit, submitChapterContentSave, chapterRevisionDialogVisible, chapterRevisionLoading, chapterRevisionRows, chapterRevisionDetailVisible, chapterRevisionDetail, openChapterRevisionDialog, openChapterRevisionDetail, confirmRestoreChapterRevision,
+                    outlineManualEditing, outlineEditForm, startOutlineManualEdit, cancelOutlineManualEdit, submitOutlineContentSave, outlineRevisionDialogVisible, outlineRevisionLoading, outlineRevisionRows, outlineRevisionDetailVisible, outlineRevisionDetail, openOutlineRevisionDialog, openOutlineRevisionDetail, confirmRestoreOutlineRevision,
+                    characterEditDialogVisible, characterEditForm, openCharacterEditDialog, submitCharacterContentSave, characterRevisionDialogVisible, characterRevisionLoading, characterRevisionRows, characterRevisionDetailVisible, characterRevisionDetail, openCharacterRevisionDialogFromEdit, openCharacterRevisionDetail, confirmRestoreCharacterRevision,
                     activeView, logFilter, filteredLogs, loading, actions, testing, isCloudServer, connectionStatus, compactDialogMode, libraryLayoutMode, setLibraryLayoutMode,
                     chapterListWidth, startResizeChapterList,
                     sidebarCollapsed, toggleSidebar, switchToCloud, switchToLocal, testConnection, saveConfig,
-                    authSession, authTokenPresent, authClusterHint, loginDialogVisible, loginForm, openLoginDialog, submitAdminLogin, logoutAdmin, updateNovelLibraryVisibility,
+                    authSession, authTokenPresent, authClusterHint, isAdminRole, authLoginGeoHint, canDeleteNovel, loginDialogVisible, loginDialogMode, loginForm, openLoginDialog, submitAdminLogin, submitRegister, logoutAdmin, updateNovelLibraryVisibility,
+                    authUsersDialogVisible, authUsersList, openAuthUsersDialog, fetchAuthUsers,
                     fetchNovels, selectNovel, refreshChapters, refreshGenerationState, handleChapterSelect, backToNovelList,
                     bookMetaForm, generationTasksDialogVisible, novelGenerationTasks,
                     deleteNovelDialogVisible, deleteNovelSubmitting, deleteNovelGuard, deleteNovelForm, submitPermanentDeleteNovel, resetDeleteNovelDialog,
                     openCreateDialog, submitCreate, openContinueDialog, submitContinueNovel, openRangeRegenerateDialog, submitRangeRegenerate, openPipelineDialog, submitPipelineUpdate, submitWritingStyleParams, submitWritingStyleParamsClear, repairCharacters, openStoryInfoDialog, goToBookMetaTab, submitBookMeta, syncBookMetaFromNovel, submitHotMemeToggle, submitOutlineRegenerate, copyCurrentChapter, exportNovel, openQualityCenterDialog, refreshQualityTab, onQualityCenterTabChange, openExportHealthDialog, openConsistencyAlertsDialog, openChapterFactsDialog, openPlotSnapshotsDialog, openGenerationTasksDialog, refreshNovelGenerationTasks, formatGenerationTaskRange, canKickTask, canCancelTask, canRetryTask, kickGenerationTask, cancelGenerationTask, retryGenerationTask, toggleChapterMetaSetting, toggleChapterMetaSidecar, getChapterListWriteSlot, chapterListShowsTitle, chapterListRowIsCompact, chapterListHintShort, chapterListHintText, getChapterListBusyTone, handleDeleteNovel,
-                    filterLog, clearLogs, isExpandableLog, isLogExpanded, toggleLogExpanded, formatCharacter, getCharacterSections, formatOutlineHtml, scrollToOutlineHeading, formatGenerationLog, getGenerationLogStatus, getGenerationLogTime, refreshFailureLogs, openFailureLogs, setWorkbenchMode, toggleCompactDialogMode, handleViewChange, minimizeWindow, maximizeWindow, closeWindow,
+                    filterLog, clearLogs, isExpandableLog, isLogExpanded, toggleLogExpanded, formatCharacter, getCharacterSections, formatOutlineHtml, scrollToOutlineHeading, formatGenerationLog, getGenerationLogStatus, getGenerationLogTime, refreshFailureLogs, openFailureLogs, setWorkbenchMode, toggleCompactDialogMode, handleViewChange, updateStatus, checkForUpdate, quitAndInstall, featureGuideVisible, featureCollapse, appVersion, minimizeWindow, maximizeWindow, closeWindow,
                     dashboardSummary, dashboardBusyList, dashboardRecentItems, refreshDashboardOverview, formatDashboardWords, libraryCardAccent, openNovelFromDashboard, novelChapterCountFromRow, estimateWordsFromChapters,
                     novelListUpdatedRaw, formatRelativeUpdated, formatNovelUpdatedAbsolute, novelCardLatestChapterLabel,
                     castRestrictUiKey, castRestrictFromUiKey
@@ -5898,6 +6725,19 @@
             flex-wrap: wrap;
         }
         .auth-hint-soft { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+        .update-cluster {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .feature-guide-btn { margin-left: 2px; }
+        .feature-guide { max-height: 62vh; overflow-y: auto; padding-right: 4px; }
+        .fg-section p { margin: 0 0 10px; font-size: 13px; line-height: 1.7; color: #334155; }
+        .fg-section p:last-child { margin-bottom: 0; }
+        .fg-section strong { color: #1e293b; }
+        .fg-footer { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+        .fg-footer p { margin: 0; }
         .service-label { color: var(--muted); font-size: 12px; font-weight: 800; }
         .current-novel-chip { min-width:0; max-width: 280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding: 7px 11px; border-radius: 999px; background: linear-gradient(135deg, rgba(251, 207, 232, 0.55), rgba(186, 230, 253, 0.5)); color: #0f172a; border: 1px solid rgba(255,255,255,0.85); font-size: 12px; font-weight: 800; }
         .service-switch { flex-shrink: 0; }
@@ -6576,8 +7416,8 @@
         }
         .wdp-edit-btn-inline.el-button {
             flex-shrink: 0;
-            font-weight: 850;
-            padding: 4px 6px;
+            padding: 5px 12px;
+            min-height: 28px;
         }
         .wdp-empty-inline {
             font-size: 11px;
@@ -6901,6 +7741,20 @@
         .outline-table th { background: rgba(37,99,235,0.08); color: #1e3a8a; font-weight: 800; }
         .character-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
         .character-card { padding: 16px; border-radius: 16px; border: 1px solid var(--line); background: rgba(248,250,252,.76); color: #334155; line-height: 1.75; }
+        .character-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .character-card-head h4 { margin: 0; flex: 1; min-width: 0; }
+        .auth-user-chip { margin-left: 6px; font-size: 11px; color: #64748b; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+        .login-mode-switch { margin-bottom: 4px; }
+        .chapter-manual-edit-bar { margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(148, 163, 184, 0.45); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .chapter-edit-panel { margin-top: 12px; padding: 14px; border-radius: 14px; border: 1px solid rgba(186, 230, 253, 0.5); background: rgba(255, 255, 255, 0.72); }
+        .chapter-edit-panel .el-textarea { margin-top: 8px; }
+        .chapter-edit-actions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .chapter-revision-detail-pre { max-height: 440px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+        .outline-manual-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 6px; }
+        .outline-manual-actions-top { margin-top: 4px; margin-bottom: 12px; }
+        .outline-manual-edit-panel { margin-top: 10px; padding: 14px; border-radius: 14px; border: 1px solid rgba(186, 230, 253, 0.55); background: linear-gradient(168deg, rgba(255, 253, 254, 0.96), rgba(238, 246, 255, 0.88)); }
+        .outline-manual-edit-panel-top { margin-bottom: 16px; }
+        .outline-manual-edit-panel .el-textarea { margin-bottom: 10px; }
         .character-section + .character-section { margin-top: 8px; }
         .character-section strong { display: block; margin-bottom: 2px; font-size: 12px; color: #1d4ed8; }
         .character-section p { text-indent: 0; }
@@ -7308,6 +8162,65 @@
         .el-button { border-radius: 11px; font-weight: 700; transition: transform .18s ease, box-shadow .18s ease, background .18s ease; }
         .el-button:hover { transform: translateY(-1px); }
         .el-button--primary { background: linear-gradient(135deg, var(--primary), var(--primary-2)); border:none; box-shadow: 0 9px 18px rgba(37,99,235,0.22); }
+
+        /* 编辑入口 / 版本历史：浅粉蓝多层次渐变，与大纲再生区、登场区视觉一致 */
+        .btn-soft-gradient-primary.el-button--primary.is-plain {
+            --el-button-bg-color: transparent;
+            --el-button-hover-bg-color: transparent;
+            --el-button-active-bg-color: transparent;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            color: #0f172a !important;
+            border: 1px solid rgba(129, 168, 224, 0.55) !important;
+            background:
+                radial-gradient(ellipse 120% 80% at 90% -20%, rgba(251, 207, 232, 0.35), transparent 55%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.58), rgba(255, 255, 255, 0.22)),
+                linear-gradient(155deg, rgba(219, 234, 254, 0.96) 0%, rgba(237, 233, 254, 0.9) 42%, rgba(252, 231, 243, 0.94) 100%) !important;
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.96) inset,
+                0 6px 20px rgba(91, 140, 255, 0.1),
+                0 2px 10px rgba(251, 207, 232, 0.16);
+        }
+        .btn-soft-gradient-primary.el-button--primary.is-plain:hover:not(.is-disabled),
+        .btn-soft-gradient-primary.el-button--primary.is-plain:focus:not(.is-disabled) {
+            color: #0a0a0a !important;
+            border-color: rgba(99, 102, 241, 0.48) !important;
+            background:
+                radial-gradient(ellipse 110% 85% at 85% -15%, rgba(251, 207, 232, 0.42), transparent 52%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.32)),
+                linear-gradient(155deg, rgba(191, 219, 254, 0.98) 0%, rgba(221, 214, 254, 0.94) 40%, rgba(251, 207, 232, 0.58) 100%) !important;
+        }
+        .btn-soft-gradient-primary.el-button--primary.is-plain:active:not(.is-disabled) {
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.78) inset;
+        }
+        .btn-soft-gradient-secondary.el-button.is-plain:not(.el-button--primary) {
+            --el-button-bg-color: transparent;
+            --el-button-hover-bg-color: transparent;
+            font-weight: 750;
+            font-size: 12px;
+            color: #334155 !important;
+            border: 1px solid rgba(186, 230, 253, 0.72) !important;
+            background:
+                radial-gradient(ellipse 100% 70% at 0% 100%, rgba(186, 230, 253, 0.28), transparent 50%),
+                linear-gradient(168deg, rgba(255, 253, 254, 0.95) 0%, rgba(238, 246, 255, 0.88) 48%, rgba(253, 244, 250, 0.82) 100%) !important;
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.92) inset,
+                0 4px 16px rgba(91, 140, 255, 0.07);
+        }
+        .btn-soft-gradient-secondary.el-button.is-plain:not(.el-button--primary):hover:not(.is-disabled),
+        .btn-soft-gradient-secondary.el-button.is-plain:not(.el-button--primary):focus:not(.is-disabled) {
+            color: #1e293b !important;
+            border-color: rgba(129, 168, 224, 0.65) !important;
+            background:
+                radial-gradient(ellipse 95% 75% at 100% 0%, rgba(251, 207, 232, 0.22), transparent 48%),
+                linear-gradient(168deg, rgba(255, 255, 255, 0.98) 0%, rgba(224, 242, 254, 0.55) 45%, rgba(252, 231, 243, 0.45) 100%) !important;
+        }
+        .btn-soft-gradient-primary.el-button.is-disabled,
+        .btn-soft-gradient-secondary.el-button.is-disabled {
+            opacity: 0.52;
+            filter: saturate(0.85);
+        }
         .el-tag { border-radius: 999px; font-weight: 800; }
         .el-dialog { border-radius: 20px; overflow: hidden; }
         .unified-dialog .el-dialog__header {
@@ -7744,10 +8657,96 @@
             margin-bottom: 8px;
             flex-wrap: wrap;
         }
+        /* 登场角色名编辑区：与 .outline-regenerate-collapse 一致的浅粉蓝多层次渐变 */
+        .chapter-cast-names-panel {
+            margin-top: 10px;
+            margin-bottom: 2px;
+            padding: 14px 16px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(186, 230, 253, 0.55);
+            background:
+                radial-gradient(ellipse 130% 90% at 100% -10%, rgba(251, 207, 232, 0.36), transparent 52%),
+                radial-gradient(ellipse 110% 80% at -5% 110%, rgba(186, 230, 253, 0.42), transparent 48%),
+                radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.58), transparent 62%),
+                linear-gradient(168deg, rgba(255, 253, 254, 0.98) 0%, rgba(253, 244, 250, 0.86) 38%, rgba(238, 246, 255, 0.94) 100%);
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.92) inset,
+                0 8px 28px rgba(91, 140, 255, 0.06),
+                0 3px 14px rgba(251, 207, 232, 0.11);
+        }
+        .chapter-cast-names-panel .el-form-item {
+            margin-bottom: 12px;
+        }
+        .chapter-cast-names-panel .chapter-cast-editor-row:last-of-type,
+        .chapter-cast-names-panel .chapter-cast-inline-row:last-of-type {
+            margin-bottom: 10px;
+        }
+        /* 「添加登场角色」：覆盖 EP plain-primary 默认描边蓝，与面板及 .style-param-action-btn 同一套浅粉蓝渐变 */
+        .chapter-cast-names-panel .chapter-cast-add-row-btn.el-button--primary.is-plain {
+            --el-button-bg-color: transparent;
+            --el-button-hover-bg-color: transparent;
+            --el-button-active-bg-color: transparent;
+            margin-top: 4px;
+            padding: 8px 16px;
+            border-radius: 11px;
+            font-weight: 800;
+            font-size: 12px;
+            letter-spacing: 0.02em;
+            color: #0f172a !important;
+            border: 1px solid rgba(129, 168, 224, 0.55) !important;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.2)),
+                linear-gradient(155deg, rgba(219, 234, 254, 0.95) 0%, rgba(237, 233, 254, 0.88) 42%, rgba(252, 231, 243, 0.92) 100%) !important;
+            box-shadow:
+                0 1px 0 rgba(255, 255, 255, 0.95) inset,
+                0 6px 18px rgba(91, 140, 255, 0.09),
+                0 2px 8px rgba(251, 207, 232, 0.14);
+        }
+        .chapter-cast-names-panel .chapter-cast-add-row-btn.el-button--primary.is-plain:hover,
+        .chapter-cast-names-panel .chapter-cast-add-row-btn.el-button--primary.is-plain:focus {
+            color: #0a0a0a !important;
+            border-color: rgba(99, 102, 241, 0.48) !important;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.28)),
+                linear-gradient(155deg, rgba(191, 219, 254, 0.98) 0%, rgba(221, 214, 254, 0.92) 40%, rgba(251, 207, 232, 0.55) 100%) !important;
+        }
+        .chapter-cast-names-panel .chapter-cast-add-row-btn.el-button--primary.is-plain:active {
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.75) inset;
+        }
+        .chapter-cast-names-panel .el-input__wrapper,
+        .chapter-cast-names-panel .el-select .el-select__wrapper {
+            background-color: rgba(255, 255, 255, 0.82);
+            box-shadow: 0 0 0 1px rgba(186, 230, 253, 0.35) inset;
+        }
         .outline-graph-json-block {
             margin-top: 18px;
             padding-top: 12px;
             border-top: 1px dashed rgba(148, 163, 184, 0.45);
+        }
+        .outline-runtime-line {
+            margin: 8px 0 12px;
+        }
+        .outline-two-phase-off-alert {
+            margin-bottom: 12px;
+        }
+        .narrative-nl-hint-alert {
+            margin-bottom: 10px;
+        }
+        .narrative-nl-examples {
+            margin: 0 0 12px;
+            font-size: 12px;
+            color: #475569;
+        }
+        .narrative-nl-examples summary {
+            cursor: pointer;
+            font-weight: 600;
+            margin-bottom: 6px;
+            user-select: none;
+        }
+        .narrative-nl-examples-ul {
+            margin: 6px 0 0;
+            padding-left: 18px;
+            line-height: 1.5;
         }
         .style-params-editor .chapter-meta-muted {
             color: #64748b;

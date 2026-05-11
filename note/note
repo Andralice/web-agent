@@ -1,1 +1,3 @@
 .\note\push-github.ps1 -m "你的提交说明"
+./note/deploy.sh
+bash note/deploy.sh
